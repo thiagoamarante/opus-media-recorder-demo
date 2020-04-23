@@ -16,7 +16,7 @@
     <!-- For mobile -->
     <meta name="viewport" content="width=device-width, initial-scale=1"/>
     <title>opus-media-recorder Example !</title>
-    <link href="docs/main.css" rel="stylesheet">
+    <link href="src/main.css" rel="stylesheet">
     <style>
     </style>
 </head>
@@ -26,7 +26,7 @@
 <a class="github-corner"
    href="https://github.com/kbumsik/opus-media-recorder"
    aria-label="View source on GitHub">
-    <link href="docs/octocat.css" rel="stylesheet">
+    <link href="src/octocat.css" rel="stylesheet">
     <span>Fork me on GitHub!</span>
     <svg aria-hidden="true"
          viewBox="0 0 125 125"
@@ -74,8 +74,7 @@
     <div>
         <label for="mimeSelect">MIME Type</label>
         <select id="mimeSelect" class="mime-select">
-            <option value="" id="defaultMime">default</option>
-            <option value="audio/ogg">audio/ogg</option>
+            <option value="audio/ogg" id="defaultMime">audio/ogg</option>
             <option value="audio/webm">audio/webm</option>
             <option value="audio/wave">audio/wave</option>
             <option value="wrong_mime">wrong_mime (for testing)</option>
@@ -160,8 +159,8 @@
 <!--<script type="text/javascript" src="https://cdn.jsdelivr.net/npm/opus-media-recorder@0.7.19/OpusMediaRecorder.umd.js"></script>-->
 <!--<script type="text/javascript" src="https://cdn.jsdelivr.net/npm/opus-media-recorder@0.7.19/encoderWorker.umd.js"></script>-->
 
-<script type="text/javascript" src="docs/OpusMediaRecorder.umd.js"></script>
-<script type="text/javascript" src="docs/encoderWorker.umd.js"></script>
-<script type="text/javascript" src="docs/example.js"></script>
+<script type="text/javascript" src="src/OpusMediaRecorder.umd.js"></script>
+<script type="text/javascript" src="src/encoderWorker.umd.js"></script>
+<script type="text/javascript" src="src/example.js"></script>
 </body>
 </html>

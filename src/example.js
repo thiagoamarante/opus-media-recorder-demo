@@ -149,7 +149,7 @@ window.addEventListener('load', function checkPlatform() {
     let tmpRec = new MediaRecorder(
         getStream(new Audio('https://kbumsik.io/opus-media-recorder/sample.mp3')),
         {}, workerOptions);
-    defaultMime.innerHTML = `default: ${tmpRec.mimeType} (Browser dependant)`;
+    // defaultMime.innerHTML = `default: ${tmpRec.mimeType} (Browser dependant)`;
 }, false);
 
 // Update state of buttons when any buttons clicked
@@ -243,10 +243,8 @@ contentAudio.oncanplay = function () {
             Promise.reject(new Error());
         })
         .then(printStreamInfo) // Just for debugging purpose.
-        .then(_ => console.log('Creating MediaRecorder is successful.'))
-        .then(initButtons)
-        .then(updateButtonState)
-        .then(function () {
+        .then(_ =>{
+                console.log('Creating MediaRecorder is successful.')
             // start recorder
             recorder.start(timeSlice.value)
             var interVal = setInterval(function () {
@@ -258,6 +256,8 @@ contentAudio.oncanplay = function () {
                 }
             }, 1)
         })
+        .then(initButtons)
+        .then(updateButtonState)
 }
 
 /***
@@ -331,18 +331,20 @@ window.onerror = (msg, url, lineNo, columnNo, error) => {
 
 // print stream information (for debugging)
 function printStreamInfo(stream) {
-    for (const track of stream.getAudioTracks()) {
-        console.log('Track Information:');
-        for (const key in track) {
-            if (typeof track[key] !== 'function') {
-                console.log(`\t${key}: ${track[key]}`);
+    if(stream){
+        for (const track of stream.getAudioTracks()) {
+            console.log('Track Information:');
+            for (const key in track) {
+                if (typeof track[key] !== 'function') {
+                    console.log(`\t${key}: ${track[key]}`);
+                }
             }
-        }
-        console.log('Track Settings:');
-        let settings = track.getSettings();
-        for (const key in settings) {
-            if (typeof settings[key] !== 'function') {
-                console.log(`\t${key}: ${settings[key]}`);
+            console.log('Track Settings:');
+            let settings = track.getSettings();
+            for (const key in settings) {
+                if (typeof settings[key] !== 'function') {
+                    console.log(`\t${key}: ${settings[key]}`);
+                }
             }
         }
     }

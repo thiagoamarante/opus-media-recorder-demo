@@ -62,7 +62,7 @@ opus-media-recorder is compatible with the [Mediastream Recording API](https://d
 
 ### JavaScript
 
-For standard usages of `MediaRecorder`, see the [MDN reference](https://developer.mozilla.org/en-US/docs/Web/API/MediaRecorder) and other online resources. Our [testing website](docs) and [example section](example) may be useful as well.
+For standard usages of `MediaRecorder`, see the [MDN reference](https://developer.mozilla.org/en-US/docs/Web/API/MediaRecorder) and other online resources. Our [testing website](src) and [example section](example) may be useful as well.
 
 #### Examples
 
