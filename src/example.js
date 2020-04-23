@@ -9,16 +9,7 @@ window.MediaRecorder = OpusMediaRecorder;
 
 // Recorder object
 let recorder;
-// Buttons
-let buttonCreate = document.querySelector('#buttonCreate');
-let buttonStart = document.querySelector('#buttonStart');
-let buttonPause = document.querySelector('#buttonPause');
-let buttonResume = document.querySelector('#buttonResume');
-let buttonStop = document.querySelector('#buttonStop');
-let buttonStopTracks = document.querySelector('#buttonStopTracks'); // For debugging purpose
-// User-selectable option
 let mimeSelect = document.querySelector('#mimeSelect');
-let defaultMime = document.querySelector('#defaultMime');
 let mimeSelectValue = '';
 mimeSelect.onchange = (e) => {
     mimeSelectValue = e.target.value;
@@ -27,35 +18,9 @@ let timeSlice = document.querySelector('#timeSlice');
 // Player
 let player = document.querySelector('#player');
 let link = document.querySelector('#link');
-// Sticky divs
-let status = document.querySelector('#status');
-
-// This creates a MediaRecorder object
-buttonCreate.onclick = () => {
-    navigator.mediaDevices.getUserMedia({audio: true, video: false})
-        .then((stream) => {
-            console.warn("gum success: ", stream)
-            if (recorder && recorder.state !== 'inactive') {
-                console.log('Stop the recorder first');
-                throw new Error('Stop the recorder first');
-            }
-            return stream;
-        })
-        .then(createMediaRecorder)
-        .catch(e => {
-            console.log(`MediaRecorder is failed: ${e.message}`);
-            Promise.reject(new Error());
-        })
-        .then(printStreamInfo) // Just for debugging purpose.
-        .then(_ => console.log('Creating MediaRecorder is successful.'))
-        .then(initButtons)
-        .then(updateButtonState);
-};
 
 function createMediaRecorder(stream) {
     // Create recorder object
-    console.warn("Create recorder object!")
-    console.warn("Current Select MIME Type: ", mimeSelectValue)
     let options = {mimeType: mimeSelectValue};
     recorder = new MediaRecorder(stream, options, workerOptions);
 
@@ -63,18 +28,15 @@ function createMediaRecorder(stream) {
     // Recorder Event Handlers
     recorder.onstart = _ => {
         dataChunks = [];
-
         console.log('Recorder started');
-        updateButtonState();
     };
     recorder.ondataavailable = (e) => {
         dataChunks.push(e.data);
-
         console.log('Recorder data available');
-        updateButtonState();
     };
     recorder.onstop = (e) => {
         // When stopped add a link to the player and the download link
+        console.warn("recorder: ", recorder)
         let blob = new Blob(dataChunks, {'type': recorder.mimeType});
         dataChunks = [];
         let audioURL = URL.createObjectURL(blob);
@@ -87,7 +49,6 @@ function createMediaRecorder(stream) {
         link.download = 'recording' + extension;
 
         console.log('Recorder stopped');
-        updateButtonState();
     };
     recorder.onpause = _ => console.log('Recorder paused');
     recorder.onresume = _ => console.log('Recorder resumed');
@@ -95,100 +56,6 @@ function createMediaRecorder(stream) {
 
     return stream;
 };
-
-function initButtons() {
-    buttonStart.onclick = _ => recorder.start(timeSlice.value);
-    buttonPause.onclick = _ => recorder.pause();
-    buttonResume.onclick = _ => recorder.resume();
-    buttonStop.onclick = _ => recorder.stop();
-    buttonStopTracks.onclick = _ => {
-        // stop all tracks (this will delete a mic icon from a browser tab
-        recorder.stream.getTracks().forEach(i => i.stop());
-        console.log('Tracks (stream) stopped. click \'Create\' button to capture stream.');
-    };
-}
-
-// Check platform
-window.addEventListener('load', function checkPlatform() {
-    // Check compatibility
-    if (OpusMediaRecorder === undefined) {
-        console.error('No OpusMediaRecorder found');
-    } else {
-        // Check available content types
-        let contentTypes = [
-            'audio/wave',
-            'audio/wav',
-            'audio/ogg',
-            'audio/ogg;codecs=opus',
-            'audio/webm',
-            'audio/webm;codecs=opus'
-        ];
-        contentTypes.forEach(type => {
-            console.log(type + ' is ' +
-                (MediaRecorder.isTypeSupported(type)
-                    ? 'supported' : 'NOT supported'));
-        });
-    }
-
-    // Check default MIME audio format for the client's platform
-    // To do this, create captureStream() polyfill.
-    function getStream(mediaElement) {
-        const AudioContext = window.AudioContext || window.webkitAudioContext;
-        const context = new AudioContext();
-        const source = context.createMediaElementSource(mediaElement);
-        const destination = context.createMediaStreamDestination();
-
-        source.connect(destination);
-        source.connect(context.destination);
-
-        return destination.stream;
-    }
-
-    // When creating MediaRecorder object without mimeType option, the API will
-    //  decide the default MIME Type depending on the browser running.
-    let tmpRec = new MediaRecorder(
-        getStream(new Audio('https://kbumsik.io/opus-media-recorder/sample.mp3')),
-        {}, workerOptions);
-    // defaultMime.innerHTML = `default: ${tmpRec.mimeType} (Browser dependant)`;
-}, false);
-
-// Update state of buttons when any buttons clicked
-function updateButtonState() {
-    switch (recorder.state) {
-        case 'inactive':
-            buttonCreate.disabled = false;
-            buttonStart.disabled = false;
-            buttonPause.disabled = true;
-            buttonResume.disabled = true;
-            buttonStop.disabled = true;
-            buttonStopTracks.disabled = false; // For debugging purpose
-            status.innerHTML =
-                link.href ? 'Recording complete. You can play or download the recording below.'
-                    : 'Stream created. Click "start" button to start recording.';
-            break;
-        case 'recording':
-            buttonCreate.disabled = true;
-            buttonStart.disabled = true;
-            buttonPause.disabled = false;
-            buttonResume.disabled = false;
-            buttonStop.disabled = false;
-            buttonStopTracks.disabled = false; // For debugging purpose
-            status.innerHTML = 'Recording. Click "stop" button to play recording.';
-            break;
-        case 'paused':
-            buttonCreate.disabled = true;
-            buttonStart.disabled = true;
-            buttonPause.disabled = true;
-            buttonResume.disabled = false;
-            buttonStop.disabled = false;
-            buttonStopTracks.disabled = false; // For debugging purpose
-            status.innerHTML = 'Paused. Click "resume" button.';
-            break;
-        default:
-            // Maybe recorder is not initialized yet so just ingnore it.
-            break;
-    }
-}
 
 /*******************************************************************************
  * file upload
@@ -256,8 +123,6 @@ contentAudio.oncanplay = function () {
                 }
             }, 1)
         })
-        .then(initButtons)
-        .then(updateButtonState)
 }
 
 /***
@@ -282,6 +147,28 @@ function getObjectURL(file){
  * End of file upload
  ******************************************************************************/
 
+// Check platform
+window.addEventListener('load', function checkPlatform() {
+    // Check compatibility
+    if (OpusMediaRecorder === undefined) {
+        console.error('No OpusMediaRecorder found');
+    } else {
+        // Check available content types
+        let contentTypes = [
+            'audio/wave',
+            'audio/wav',
+            'audio/ogg',
+            'audio/ogg;codecs=opus',
+            'audio/webm',
+            'audio/webm;codecs=opus'
+        ];
+        contentTypes.forEach(type => {
+            console.log(type + ' is ' +
+                (MediaRecorder.isTypeSupported(type)
+                    ? 'supported' : 'NOT supported'));
+        });
+    }
+}, false);
 
 
 /*******************************************************************************
