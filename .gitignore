@@ -1,0 +1,10 @@
+/bin
+/.project
+/.project.bak
+/.externalToolBuilders/
+/.settings/
+.idea/
+/code/whiteboard/node_modules
+/code/webrtc_sdk/node_modules
+/code/app_local/node_modules
+/code/webrtc_sdk/dist
