@@ -13,6 +13,11 @@ let recorder;
 let player = document.querySelector('#player');
 let link = document.querySelector('#link');
 
+/**
+ * create MediaRecorder instance
+ * @param stream
+ * @returns {*}
+ */
 function createMediaRecorder(stream) {
     // Create recorder object
     let options = {mimeType: 'audio/ogg'};
@@ -39,9 +44,12 @@ function createMediaRecorder(stream) {
             : recorder.mimeType.match(/webm/) ? '.webm'
                 : recorder.mimeType.match(/wav/) ? '.wav'
                     : '';
-        link.download = 'recording' + extension;
-
+        link.download = (fileName ? fileName : 'recording') + extension;
         console.log('Recorder stopped');
+
+        if(!blob.size){
+            throw Error('Blob is empty')
+        }
     };
     recorder.onpause = _ => console.log('Recorder paused');
     recorder.onresume = _ => console.log('Recorder resumed');
@@ -59,6 +67,7 @@ let uploadFile = document.getElementById('uploadFile')
 let audioElement = document.getElementById('audio')
 let audioStream
 let file
+let fileName
 let fileURL
 let endTime = 30     // 设置音频 recorder 时长
 
@@ -80,12 +89,13 @@ function getObjectURL(file){
 }
 
 /**
- * 上传本地音视频
+ * Upload local audio file
  */
 uploadFile.addEventListener('change', async function () {
     try {
         file = document.getElementById("uploadFile").files[0];
         fileURL = getObjectURL(file);
+        fileName = file.name
         let typeJudge = file.type.split("/")[0];
         if (typeJudge === "audio" || typeJudge === "video") {
             audioElement.setAttribute('src',fileURL);
@@ -96,7 +106,7 @@ uploadFile.addEventListener('change', async function () {
             }else if(audioElement.mozCaptureStream){
                 audioStream = audioElement.mozCaptureStream(5);
             }else {
-                console.warn('Current browser does not support captureStream!!')
+                console.error('Current browser does not support captureStream!!')
                 return
             }
             audioElement.play();
@@ -109,9 +119,8 @@ uploadFile.addEventListener('change', async function () {
 })
 
 /**
- * audio 加载完成
+ * audio load complete
  */
-
 audioElement.addEventListener('canplay', function () {
     let promise = new Promise(function(resolve, reject) {
         resolve(audioStream);
@@ -130,9 +139,8 @@ audioElement.addEventListener('canplay', function () {
         })
 })
 
-
 /**
- * 时长监听，音频播放时长达到设置的结束时间时，停止recorder
+ * Duration monitoring: When the audio playback duration reaches the set end time, stop the recorder
  */
 audioElement.addEventListener("timeupdate", function () {
     if (endTime >0  && audioElement.currentTime >= endTime) {
@@ -145,7 +153,7 @@ audioElement.addEventListener("timeupdate", function () {
 });
 
 /**
- * 上传文件小于30s时，音频播放结束后，停止recorder
+ * When the uploaded file is less than 30s, after audio playback ends, stop the recorder
  */
 audioElement.addEventListener("ended", function () {
     if(recorder._state !== 'inactive'){
