@@ -48,7 +48,7 @@ function createMediaRecorder(stream) {
         console.log('Recorder stopped');
 
         if(!blob.size){
-            throw Error('Blob is empty')
+            throw new Error('Exception: Blob is empty')
         }
     };
     recorder.onpause = _ => console.log('Recorder paused');
@@ -95,7 +95,7 @@ uploadFile.addEventListener('change', async function () {
     try {
         file = document.getElementById("uploadFile").files[0];
         fileURL = getObjectURL(file);
-        fileName = file.name
+        fileName = file.name.split('.')[0]
         let typeJudge = file.type.split("/")[0];
         if (typeJudge === "audio" || typeJudge === "video") {
             audioElement.setAttribute('src',fileURL);
