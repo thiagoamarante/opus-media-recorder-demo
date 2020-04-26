@@ -9,19 +9,13 @@ window.MediaRecorder = OpusMediaRecorder;
 
 // Recorder object
 let recorder;
-let mimeSelect = document.querySelector('#mimeSelect');
-let mimeSelectValue = '';
-mimeSelect.onchange = (e) => {
-    mimeSelectValue = e.target.value;
-};
-let timeSlice = document.querySelector('#timeSlice');
 // Player
 let player = document.querySelector('#player');
 let link = document.querySelector('#link');
 
 function createMediaRecorder(stream) {
     // Create recorder object
-    let options = {mimeType: mimeSelectValue};
+    let options = {mimeType: 'audio/ogg'};
     recorder = new MediaRecorder(stream, options, workerOptions);
 
     let dataChunks = [];
@@ -36,7 +30,6 @@ function createMediaRecorder(stream) {
     };
     recorder.onstop = (e) => {
         // When stopped add a link to the player and the download link
-        console.warn("recorder: ", recorder)
         let blob = new Blob(dataChunks, {'type': recorder.mimeType});
         dataChunks = [];
         let audioURL = URL.createObjectURL(blob);
@@ -62,32 +55,51 @@ function createMediaRecorder(stream) {
  *    This section is only for file upload
  ******************************************************************************/
 
-var uploadFile = document.getElementById('uploadFile')
-var contentAudio = document.getElementById('audio')
-var audioStream
-var file
-var fileURL
+let uploadFile = document.getElementById('uploadFile')
+let audioElement = document.getElementById('audio')
+let audioStream
+let file
+let fileURL
+let endTime = 30     // 设置音频 recorder 时长
 
 /***
+ * get file url
+ * @param file
+ * @returns {*}
+ */
+function getObjectURL(file){
+    let url = null;
+    if (window.createObjectURL !== undefined) { // basic
+        url = window.createObjectURL(file);
+    } else if (window.URL !== undefined) { // mozilla(firefox)
+        url = window.URL.createObjectURL(file);
+    } else if (window.webkitURL !== undefined) { // webkit or chrome
+        url = window.webkitURL.createObjectURL(file);
+    }
+    return url;
+}
+
+/**
  * 上传本地音视频
  */
 uploadFile.addEventListener('change', async function () {
     try {
         file = document.getElementById("uploadFile").files[0];
         fileURL = getObjectURL(file);
-        var typeJudge = file.type.split("/")[0];
+        let typeJudge = file.type.split("/")[0];
         if (typeJudge === "audio" || typeJudge === "video") {
-            contentAudio.setAttribute('src',fileURL);
+            audioElement.setAttribute('src',fileURL);
+
             this.value = "";  // clear input
-            if(contentAudio.captureStream){
-                audioStream = contentAudio.captureStream(5);
-            }else if(contentAudio.mozCaptureStream){
-                audioStream = contentAudio.mozCaptureStream(5);
+            if(audioElement.captureStream){
+                audioStream = audioElement.captureStream(5);
+            }else if(audioElement.mozCaptureStream){
+                audioStream = audioElement.mozCaptureStream(5);
             }else {
                 console.warn('Current browser does not support captureStream!!')
                 return
             }
-            contentAudio.play();
+            audioElement.play();
         } else {
             console.warn("only support upload video or audio, please try again！");
         }
@@ -99,49 +111,48 @@ uploadFile.addEventListener('change', async function () {
 /**
  * audio 加载完成
  */
-contentAudio.oncanplay = function () {
-    var promise = new Promise(function(resolve, reject) {
+
+audioElement.addEventListener('canplay', function () {
+    let promise = new Promise(function(resolve, reject) {
         resolve(audioStream);
     });
 
     promise.then(createMediaRecorder)
-        .catch(e => {
+        .catch(function (e) {
             console.log(`MediaRecorder is failed: ${e.message}`);
             Promise.reject(new Error());
         })
         .then(printStreamInfo) // Just for debugging purpose.
-        .then(_ =>{
-                console.log('Creating MediaRecorder is successful.')
-            // start recorder
-            recorder.start(timeSlice.value)
-            var interVal = setInterval(function () {
-                var time = parseInt(contentAudio.currentTime)
-                if(time === 30){
-                    // stop recorder
-                    recorder.stop()
-                    clearInterval(interVal)
-                }
-            }, 1)
+        .then(function () {
+            console.log('Creating MediaRecorder is successful.')
+            console.log('start recorder')
+            recorder.start()
         })
-}
+})
 
-/***
- * get file url
- * @param file
- * @returns {*}
+
+/**
+ * 时长监听，音频播放时长达到设置的结束时间时，停止recorder
  */
-function getObjectURL(file){
-    var url = null;
-    if (window.createObjectURL !== undefined) { // basic
-        url = window.createObjectURL(file);
-    } else if (window.URL !== undefined) { // mozilla(firefox)
-        url = window.URL.createObjectURL(file);
-    } else if (window.webkitURL !== undefined) { // webkit or chrome
-        url = window.webkitURL.createObjectURL(file);
+audioElement.addEventListener("timeupdate", function () {
+    if (endTime >0  && audioElement.currentTime >= endTime) {
+        audioElement.pause()
+        if(recorder._state !== 'inactive'){
+            console.log('stop recorder')
+            recorder.stop()
+        }
     }
-    return url;
-}
+});
 
+/**
+ * 上传文件小于30s时，音频播放结束后，停止recorder
+ */
+audioElement.addEventListener("ended", function () {
+    if(recorder._state !== 'inactive'){
+        console.log("audio play onended")
+        recorder.stop()
+    }
+});
 
 /*******************************************************************************
  * End of file upload
@@ -162,10 +173,8 @@ window.addEventListener('load', function checkPlatform() {
             'audio/webm',
             'audio/webm;codecs=opus'
         ];
-        contentTypes.forEach(type => {
-            console.log(type + ' is ' +
-                (MediaRecorder.isTypeSupported(type)
-                    ? 'supported' : 'NOT supported'));
+        contentTypes.forEach(function (type) {
+            console.log(type + ' is ' + (MediaRecorder.isTypeSupported(type) ? 'supported' : 'NOT supported'));
         });
     }
 }, false);
