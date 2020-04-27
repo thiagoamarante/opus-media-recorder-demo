@@ -130,12 +130,12 @@ audioElement.addEventListener('canplay', function () {
             console.log(`MediaRecorder is failed: ${e.message}`);
             Promise.reject(new Error());
         })
-        .then(printStreamInfo) // Just for debugging purpose.
         .then(function () {
             console.log('Creating MediaRecorder is successful.')
             console.log('start recorder')
             recorder.start()
         })
+        .then(printStreamInfo) // Just for debugging purpose.
 })
 
 /**
