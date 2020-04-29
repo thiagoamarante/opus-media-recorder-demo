@@ -5,7 +5,6 @@ const workerOptions = {
 
 // Polyfill MediaRecorder
 window.MediaRecorder = OpusMediaRecorder;
-
 // Recorder object
 let recorder;
 // Player
@@ -26,11 +25,11 @@ function createMediaRecorder(stream) {
     // Recorder Event Handlers
     recorder.onstart = _ => {
         dataChunks = [];
-        console.log('Recorder started');
+        console.warn('Recorder started');
     };
     recorder.ondataavailable = (e) => {
+        console.warn('Recorder data available: \n ', e.data);
         dataChunks.push(e.data);
-        console.log('Recorder data available');
     };
     recorder.onstop = (e) => {
         // When stopped add a link to the player and the download link
@@ -68,49 +67,42 @@ let audioStream
 let file
 let fileName
 let fileURL
-let endTime = 30     // 设置音频 recorder 时长
+let endTime = 10     // 设置音频 recorder 时长
 
-/***
- * get file url
- * @param file
- * @returns {*}
- */
-function getObjectURL(file){
-    let url = null;
-    if (window.createObjectURL !== undefined) { // basic
-        url = window.createObjectURL(file);
-    } else if (window.URL !== undefined) { // mozilla(firefox)
-        url = window.URL.createObjectURL(file);
-    } else if (window.webkitURL !== undefined) { // webkit or chrome
-        url = window.webkitURL.createObjectURL(file);
-    }
-    return url;
+// 用于处理上传的音频文件
+let AudioContext = window.AudioContext || window.webkitAudioContext || false;
+let audioCtx;
+if (AudioContext) {
+    audioCtx = new AudioContext();
 }
+let soundSource
+let destination
 
 /**
  * Upload local audio file
  */
 uploadFile.addEventListener('change', async function () {
     try {
-        file = document.getElementById("uploadFile").files[0];
-        fileURL = getObjectURL(file);
+        file = this.files[0];
         fileName = file.name.split('.')[0]
         let typeJudge = file.type.split("/")[0];
-        if (typeJudge === "audio" || typeJudge === "video") {
-            audioElement.setAttribute('src',fileURL);
-
+        if (typeJudge === "audio") {
+            fileURL = getObjectURL(file);
+            audioElement.src = fileURL
             this.value = "";  // clear input
+
             if(audioElement.captureStream){
-                audioStream = audioElement.captureStream(5);
+                audioStream = audioElement.captureStream(30);
             }else if(audioElement.mozCaptureStream){
-                audioStream = audioElement.mozCaptureStream(5);
+                audioStream = audioElement.mozCaptureStream(30);
             }else {
-                console.error('Current browser does not support captureStream!!')
+                console.warn('Current browser does not support captureStream!!')
+                readFileToBuffer(file)
                 return
             }
             audioElement.play();
         } else {
-            console.warn("only support upload video or audio, please try again！");
+            alert("only audio support");
         }
     } catch (e) {
         console.error(e.message);
@@ -118,24 +110,54 @@ uploadFile.addEventListener('change', async function () {
 })
 
 /**
+ * 使用FileReader读取上传文件
+ * @param file
+ */
+function readFileToBuffer(file) {
+    if(AudioContext){
+        let reader = new FileReader();
+        reader.file = file;
+        reader.onload = (function(e) {
+            audioCtx.decodeAudioData(e.target.result, createSoundSource);
+        });
+        reader.readAsArrayBuffer(reader.file);
+    }else {
+        alert("Sorry, but the Web Audio API is not supported by your browser.");
+    }
+}
+
+/**
+ * 通过AudioContext.createMediaStreamDestination 生成文件流
+ * @param buffer
+ */
+function createSoundSource(buffer) {
+    soundSource = audioCtx.createBufferSource();
+    soundSource.buffer = buffer;
+    destination = audioCtx.createMediaStreamDestination();
+    soundSource.connect(destination);
+    soundSource.start(0, 0 / 1000);
+
+    audioStream = destination.stream
+    audioElement.srcObject = audioStream
+}
+
+/**
  * audio load complete
  */
 audioElement.addEventListener('canplay', function () {
-    let promise = new Promise(function(resolve, reject) {
-        resolve(audioStream);
-    });
-
-    promise.then(createMediaRecorder)
-        .catch(function (e) {
-            console.log(`MediaRecorder is failed: ${e.message}`);
-            Promise.reject(new Error());
-        })
-        .then(function () {
-            console.log('Creating MediaRecorder is successful.')
+    try {
+        if(audioStream){
+            createMediaRecorder(audioStream)
+            console.log('Creating MediaRecorder is successful.Start recorder...')
             console.log('start recorder')
-            recorder.start()
-        })
-        .then(printStreamInfo) // Just for debugging purpose.
+            recorder.start(1200)
+            // Just for debugging purpose.
+            printStreamInfo(audioStream)
+        }
+    }catch (e) {
+        console.log(`MediaRecorder is failed: ${e.message}`);
+        Promise.reject(new Error());
+    }
 })
 
 /**
@@ -186,7 +208,22 @@ window.addEventListener('load', function checkPlatform() {
     }
 }, false);
 
-
+/***
+ * get file url
+ * @param file
+ * @returns {*}
+ */
+function getObjectURL(file){
+    let url = null;
+    if (window.createObjectURL !== undefined) { // basic
+        url = window.createObjectURL(file);
+    } else if (window.URL !== undefined) { // mozilla(firefox)
+        url = window.URL.createObjectURL(file);
+    } else if (window.webkitURL !== undefined) { // webkit or chrome
+        url = window.webkitURL.createObjectURL(file);
+    }
+    return url;
+}
 /*******************************************************************************
  * Debug helpers
  *    This section is only for debugging purpose, library users don't need them.

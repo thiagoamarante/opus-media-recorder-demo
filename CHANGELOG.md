@@ -1,6 +1,16 @@
 # Changelog
 All notable changes to this project will be documented in this file.
 
+## [2020-4-26]
+### Added
+- 使用FileReader读取上传音频文件数据，使用 decodeAudioData 异步解码音频文件中的 ArrayBuffer。最后生成stream，再转换为ogg.
+    - safari 上decodeAudioData接口支持存在问题。
+
+- OpusMediaRecorder.umd.js 替换为 OpusMediaRecorder.js [待处理]
+
+### Issues
+- [decodeAudioData example does not work on Safari](https://github.com/mdn/webaudio-examples/issues/5)
+
 
 ## [2020-4-26]
 ### Added

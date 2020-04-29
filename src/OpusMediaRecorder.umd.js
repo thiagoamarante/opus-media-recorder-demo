@@ -426,7 +426,7 @@
                             var t = this.stream.getAudioTracks();
                             if (!t[0])
                                 throw new Error("DOMException: UnkownError, media track not found.");
-                            if (this.channelCount = t[0].getSettings().channelCount || 1,
+                            if (this.channelCount = 2,
                                 this.sampleRate = this.context.sampleRate,
                                 this.source = this.context.createMediaStreamSource(this.stream),
                                 this.processor = this.context.createScriptProcessor(4096, this.channelCount, this.channelCount),
