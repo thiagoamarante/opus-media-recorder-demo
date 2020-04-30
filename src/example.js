@@ -28,7 +28,7 @@ function createMediaRecorder(stream) {
         console.warn('Recorder started');
     };
     recorder.ondataavailable = (e) => {
-        console.warn('Recorder data available: \n ', e.data);
+        console.log('Recorder data available ');
         dataChunks.push(e.data);
     };
     recorder.onstop = (e) => {
@@ -66,65 +66,33 @@ let audioElement = document.getElementById('audio')
 let audioStream
 let file
 let fileName
-let fileURL
 let endTime = 30     // 设置音频 recorder 时长
 
 // 用于处理上传的音频文件
 let AudioContext = window.AudioContext || window.webkitAudioContext || false;
 let audioCtx;
-if (AudioContext) {
-    audioCtx = new AudioContext();
-}
-let soundSource
-let destination
+let soundSource;
+let destination;
+let fileReader = new FileReader();
 
 /**
  * Upload local audio file
+ * 使用FileReader读取上传文件，转换为stream
  */
 uploadFile.addEventListener('change', async function () {
     try {
         file = this.files[0];
         fileName = file.name.split('.')[0]
-        let typeJudge = file.type.split("/")[0];
-        if (typeJudge === "audio") {
-            fileURL = getObjectURL(file);
-            audioElement.src = fileURL
-            this.value = "";  // clear input
-
-            if(audioElement.captureStream){
-                audioStream = audioElement.captureStream(30);
-            }else if(audioElement.mozCaptureStream){
-                audioStream = audioElement.mozCaptureStream(30);
-            }else {
-                console.warn('Current browser does not support captureStream!!')
-                readFileToBuffer(file)
-                return
-            }
-            audioElement.play();
-        } else {
-            alert("only audio support");
-        }
+        audioCtx = new AudioContext();
+        fileReader.file = file;
+        fileReader.onload = (function(e) {
+            audioCtx.decodeAudioData(e.target.result, createSoundSource);
+        });
+        fileReader.readAsArrayBuffer(fileReader.file);
     } catch (e) {
         console.error(e.message);
     }
 })
-
-/**
- * 使用FileReader读取上传文件
- * @param file
- */
-function readFileToBuffer(file) {
-    if(AudioContext){
-        let reader = new FileReader();
-        reader.file = file;
-        reader.onload = (function(e) {
-            audioCtx.decodeAudioData(e.target.result, createSoundSource);
-        });
-        reader.readAsArrayBuffer(reader.file);
-    }else {
-        alert("Sorry, but the Web Audio API is not supported by your browser.");
-    }
-}
 
 /**
  * 通过AudioContext.createMediaStreamDestination 生成文件流
@@ -150,7 +118,7 @@ audioElement.addEventListener('canplay', function () {
             createMediaRecorder(audioStream)
             console.log('Creating MediaRecorder is successful.Start recorder...')
             console.log('start recorder')
-            recorder.start(1200)
+            recorder.start()
             // Just for debugging purpose.
             printStreamInfo(audioStream)
         }
