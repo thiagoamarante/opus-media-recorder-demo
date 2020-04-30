@@ -67,7 +67,7 @@ let audioStream
 let file
 let fileName
 let fileURL
-let endTime = 10     // 设置音频 recorder 时长
+let endTime = 30     // 设置音频 recorder 时长
 
 // 用于处理上传的音频文件
 let AudioContext = window.AudioContext || window.webkitAudioContext || false;
