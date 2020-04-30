@@ -1,7 +1,7 @@
 # Changelog
 All notable changes to this project will be documented in this file.
 
-## [2020-4-26]
+## [2020-4-29]
 ### Added
 - 使用FileReader读取上传音频文件数据，使用 decodeAudioData 异步解码音频文件中的 ArrayBuffer。最后生成stream，再转换为ogg.
     - safari 上decodeAudioData接口支持存在问题。
