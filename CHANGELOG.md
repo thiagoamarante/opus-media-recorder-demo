@@ -2,6 +2,16 @@
 All notable changes to this project will be documented in this file.
 
 ## [2020-4-30]
+### Changed
+
+- 替换压缩文件为非压
+
+### 踩坑
+- event-target-shim 存在和window全局变量重名的函数，使用时报错，查了很久！！！
+-  web worker 位于外部文件中，它们无法访问下例 JavaScript 对象：window 对象、document 对象、parent 对象。
+
+
+## [2020-4-30]
 ### Issues
 
 - No audio when firefox captureStream form audio element.
