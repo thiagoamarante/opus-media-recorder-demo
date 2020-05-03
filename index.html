@@ -3,7 +3,7 @@
     <meta content="IE=edge,chrome=1" http-equiv="X-UA-Compatible">
     <meta content="text/html;charset=utf-8" http-equiv="content-type">
     <title>opus-media-recorder Example !</title>
-    <link href="src/main.css" rel="stylesheet">
+    <link href="css/main.css" rel="stylesheet">
     <link rel="icon" href="data:image/ico;base64,aWNv">
     <style>
     </style>
@@ -24,11 +24,11 @@
     <div>
         <!--文件上传模块，添加input和video-->
         <input type="file" class="localShare" id="uploadFile" style="display: block;" />
-        <audio id="audio" class="audio" autoplay muted controls></audio>
+<!--        <audio id="audio" class="audio" autoplay muted controls></audio>-->
     </div>
 </section>
 
-<!-- Media recording example control -->
+<!-- Media recording css control -->
 <section id="mediaRecording" class="controller card" disabled hidden>
 
 </section>
@@ -60,14 +60,42 @@
 </section>
 
 <!--development-->
-<!--<script type="text/javascript" src="public/event-target-shim.js"></script>-->
-<!--<script type="text/javascript" src="public/detect-browser.js"></script>-->
-<!--<script type="text/javascript" src="public/OpusMediaRecorder.js"></script>-->
-<!--<script type="text/javascript" src="public/encoderWorker.js"></script>-->
-<!--<script type="text/javascript" src="src/example.js"></script>-->
-
-<!--production-->
+<!--<script type="text/javascript" css="../public/event-target-shim.js"></script>-->
+<!--<script type="text/javascript" css="../public/detect-browser.js"></script>-->
+<!--<script type="text/javascript" css="../public/OpusMediaRecorder.js"></script>-->
+<!--<script type="text/javascript" css="../public/encoderWorker.js"></script>-->
+<!--<script type="text/javascript" css="../public/index.js"></script>-->
+<!--Or-->
 <script type="text/javascript" src="dist/opusMediaRecorder.js"></script>
-<script type="text/javascript" src="src/example.js"></script>
+
+<script>
+    /*******************************************************************************
+     * Debug helpers
+     *    This section is only for debugging purpose, library users don't need them.
+     ******************************************************************************/
+    // Monkey-patching console.log for debugging.
+    document.addEventListener('DOMContentLoaded', (e) => {
+        let lineCount = 0;
+        let errorLog = document.getElementById('errorLog')
+        if(errorLog){
+            function overrideConsole(oldFunction, divLog) {
+                return function (text) {
+                    oldFunction(text);
+                    lineCount += 1;
+                    if (lineCount > 100) {
+                        let str = divLog.innerHTML;
+                        divLog.innerHTML = str.substring(str.indexOf('<br>') + '<br>'.length);
+                    }
+                    divLog.innerHTML += text + '<br>';
+                };
+            };
+
+            console.log = overrideConsole(console.log.bind(console), errorLog);
+            console.error = overrideConsole(console.error.bind(console), errorLog);
+            console.debug = overrideConsole(console.debug.bind(console), errorLog);
+            console.info = overrideConsole(console.info.bind(console), errorLog);
+        }
+    }, false);
+</script>
 </body>
 </html>

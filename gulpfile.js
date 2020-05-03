@@ -1,22 +1,20 @@
-var gulp = require('gulp');
-var concat = require('gulp-concat');
-var combiner = require('stream-combiner2');
-var uglify = require('gulp-uglify');   //js压缩
-var gutil = require('gulp-util');
-var babel = require("gulp-babel");
+let gulp = require('gulp');
+let concat = require('gulp-concat');
+let combiner = require('stream-combiner2');
+let uglify = require('gulp-uglify');   //js压缩
+let gutil = require('gulp-util');
+let babel = require("gulp-babel");
 
-var sourcemaps = require('gulp-sourcemaps')
-var javascriptObfuscator = require('gulp-javascript-obfuscator');   //js压缩混淆的gulp插件
-
-var releaseList = [
+let releaseList = [
     './public/event-target-shim.js',
     './public/detect-browser.js',
     './public/OpusMediaRecorder.js',
-    './public/encoderWorker.js'
+    './public/encoderWorker.js',
+    './public/index.js'
 ]
 
-var handleError = function (err) {
-    var colors = gutil.colors;
+let handleError = function (err) {
+    let colors = gutil.colors;
     console.log('\n');
     gutil.log(colors.red('Error!'));
     gutil.log('fileName: ' + colors.red(err.fileName));
@@ -26,7 +24,7 @@ var handleError = function (err) {
 }
 
 gulp.task('build', function (done) {
-    var combined = combiner.obj([
+    let combined = combiner.obj([
         gulp.src(releaseList)
             // .pipe(babel())
             // .pipe(uglify())

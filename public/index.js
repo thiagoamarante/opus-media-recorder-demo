@@ -2,14 +2,29 @@
 const workerOptions = {
     OggOpusEncoderWasmPath: 'https://cdn.jsdelivr.net/npm/opus-media-recorder@0.7.19/OggOpusEncoder.wasm'
 };
-
-// Polyfill MediaRecorder
 window.MediaRecorder = OpusMediaRecorder;
-// Recorder object
-let recorder;
+
 // Player
 let player = document.querySelector('#player');
 let link = document.querySelector('#link');
+let uploadFile = document.getElementById('uploadFile')
+
+// create audio element
+let audioElement = document.createElement('audio')
+audioElement.setAttribute('id', 'audio')
+audioElement.muted = true
+audioElement.autoplay = true
+
+let audioStream
+let fileName
+let endTime = 30     // 设置音频 recorder 时长
+
+// 用于处理上传的音频文件
+let audioCtx;
+let soundSource;
+let destination;
+let fileReader;
+let recorder;
 
 /**
  * create MediaRecorder instance
@@ -38,11 +53,7 @@ function createMediaRecorder(stream) {
         let audioURL = URL.createObjectURL(blob);
         player.src = audioURL;
         link.href = audioURL;
-        let extension = recorder.mimeType.match(/ogg/) ? '.ogg'
-            : recorder.mimeType.match(/webm/) ? '.webm'
-                : recorder.mimeType.match(/wav/) ? '.wav'
-                    : '';
-        link.download = (fileName ? fileName : 'recording') + extension;
+        link.download = (fileName ? fileName : 'recording') + '.ogg';
         console.log('Recorder stopped');
 
         if(!blob.size){
@@ -56,31 +67,13 @@ function createMediaRecorder(stream) {
     return stream;
 };
 
-/*******************************************************************************
- * file upload
- *    This section is only for file upload
- ******************************************************************************/
-
-let uploadFile = document.getElementById('uploadFile')
-let audioElement = document.getElementById('audio')
-let audioStream
-let file
-let fileName
-let endTime = 30     // 设置音频 recorder 时长
-
-// 用于处理上传的音频文件
-let audioCtx;
-let soundSource;
-let destination;
-let fileReader;
-
 /**
  * Upload local audio file
  * 使用FileReader读取上传文件，转换为stream
  */
 uploadFile.addEventListener('change', async function () {
     try {
-        file = this.files[0];
+        let file = this.files[0];
         fileName = file.name.split('.')[0]
         audioCtx = new AudioContext();
         fileReader = new FileReader()
@@ -103,11 +96,12 @@ function createSoundSource(buffer) {
     soundSource.buffer = buffer;
     destination = audioCtx.createMediaStreamDestination();
     soundSource.connect(destination);
-    soundSource.start(0, 0 / 1000);
+    soundSource.start();
 
     audioStream = destination.stream
     audioElement.srcObject = audioStream
 }
+
 
 /**
  * audio load complete
@@ -116,11 +110,8 @@ audioElement.addEventListener('canplay', function () {
     try {
         if(audioStream){
             createMediaRecorder(audioStream)
-            console.log('Creating MediaRecorder is successful.Start recorder...')
-            console.log('start recorder')
+            console.log('Creating MediaRecorder is successful, Start recorder...')
             recorder.start()
-            // Just for debugging purpose.
-            printStreamInfo(audioStream)
         }
     }catch (e) {
         console.log(`MediaRecorder is failed: ${e.message}`);
@@ -151,12 +142,8 @@ audioElement.addEventListener("ended", function () {
     }
 });
 
-/*******************************************************************************
- * End of file upload
- ******************************************************************************/
-
 // Check platform
-window.addEventListener('load', function checkPlatform() {
+window.addEventListener('load', function() {
     // Check compatibility
     if (OpusMediaRecorder === undefined) {
         console.error('No OpusMediaRecorder found');
@@ -175,72 +162,3 @@ window.addEventListener('load', function checkPlatform() {
         });
     }
 }, false);
-
-/***
- * get file url
- * @param file
- * @returns {*}
- */
-function getObjectURL(file){
-    let url = null;
-    if (window.createObjectURL !== undefined) { // basic
-        url = window.createObjectURL(file);
-    } else if (window.URL !== undefined) { // mozilla(firefox)
-        url = window.URL.createObjectURL(file);
-    } else if (window.webkitURL !== undefined) { // webkit or chrome
-        url = window.webkitURL.createObjectURL(file);
-    }
-    return url;
-}
-/*******************************************************************************
- * Debug helpers
- *    This section is only for debugging purpose, library users don't need them.
- ******************************************************************************/
-// Monkey-patching console.log for debugging.
-document.addEventListener('DOMContentLoaded', (e) => {
-    let lineCount = 0;
-    let errorLog = document.getElementById('errorLog')
-    if(errorLog){
-        function overrideConsole(oldFunction, divLog) {
-            return function (text) {
-                oldFunction(text);
-                lineCount += 1;
-                if (lineCount > 100) {
-                    let str = divLog.innerHTML;
-                    divLog.innerHTML = str.substring(str.indexOf('<br>') + '<br>'.length);
-                }
-                divLog.innerHTML += text + '<br>';
-            };
-        };
-
-        console.log = overrideConsole(console.log.bind(console), errorLog);
-        console.error = overrideConsole(console.error.bind(console), errorLog);
-        console.debug = overrideConsole(console.debug.bind(console), errorLog);
-        console.info = overrideConsole(console.info.bind(console), errorLog);
-    }
-}, false);
-
-// print stream information (for debugging)
-function printStreamInfo(stream) {
-    if(stream){
-        for (const track of stream.getAudioTracks()) {
-            console.log('Track Information:');
-            for (const key in track) {
-                if (typeof track[key] !== 'function') {
-                    console.log(`\t${key}: ${track[key]}`);
-                }
-            }
-            console.log('Track Settings:');
-            let settings = track.getSettings();
-            for (const key in settings) {
-                if (typeof settings[key] !== 'function') {
-                    console.log(`\t${key}: ${settings[key]}`);
-                }
-            }
-        }
-    }
-}
-
-/*******************************************************************************
- * End of debug helpers
- ******************************************************************************/

@@ -118,7 +118,7 @@ class OpusMediaRecorder extends EventTargetWrapper {
         } else if (self.location) {
             workerDir = self.location.href;
         }
-        workerDir = workerDir.substr(0, workerDir.lastIndexOf('/')) + '/public//encoderWorker.js';
+        workerDir = workerDir.substr(0, workerDir.lastIndexOf('/')) + '/public/encoderWorker.js';
         // If worker function is imported via <script> tag, make it blob to get URL.
         if (typeof OpusMediaRecorder.encoderWorker === 'function') {
             workerDir = URL.createObjectURL(new Blob([`(${OpusMediaRecorder.encoderWorker})()`]));
@@ -143,7 +143,7 @@ class OpusMediaRecorder extends EventTargetWrapper {
      * The MIME type [RFC2046] that has been selected as the container for
      * recording. This entry includes all the parameters to the base
      * mimeType. The UA should be able to play back any of the MIME types
-     * it supports for recording. For example, it should be able to display
+     * it supports for recording. For css, it should be able to display
      * a video recording in the HTML <video> tag. The default value for
      * this property is platform-specific.
      * @return {string}

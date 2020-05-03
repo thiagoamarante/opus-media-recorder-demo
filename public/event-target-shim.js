@@ -535,7 +535,7 @@ function defineCustomEventTarget(eventNames) {
  * - This is constructor if no arguments.
  * - This is a function which returns a CustomEventTarget constructor if there are arguments.
  *
- * For example:
+ * For css:
  *
  *     class A extends EventTargetWrapper {}
  *     class B extends EventTargetWrapper("message") {}

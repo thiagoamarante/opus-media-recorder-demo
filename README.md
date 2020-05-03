@@ -63,14 +63,14 @@ opus-media-recorder is compatible with the [Mediastream Recording API](https://d
 
 ### JavaScript
 
-For standard usages of `MediaRecorder`, see the [MDN reference](https://developer.mozilla.org/en-US/docs/Web/API/MediaRecorder) and other online resources. Our [testing website](src) and [example section](example) may be useful as well.
+For standard usages of `MediaRecorder`, see the [MDN reference](https://developer.mozilla.org/en-US/docs/Web/API/MediaRecorder) and other online resources. Our [testing website](css) and [example section](css) may be useful as well.
 
 #### Examples
 
-* [Webpack](example/webpack)
-* [create-react-app](example/create-react-app)
-* [Rollup](example/rollup)
-* [Browserify](example/browserify)
+* [Webpack](css/webpack)
+* [create-react-app](css/create-react-app)
+* [Rollup](css/rollup)
+* [Browserify](css/browserify)
 
 #### Installation
 
@@ -107,7 +107,7 @@ import MediaRecorder from 'opus-media-recorder';
 // Use worker-loader
 import EncoderWorker from 'worker-loader!opus-media-recorder/encoderWorker.js';
 // You should use file-loader in webpack.config.js.
-// See webpack example link in the above section for more detail.
+css
 import OggOpusWasm from 'opus-media-recorder/OggOpusEncoder.wasm';
 import WebMOpusWasm from 'opus-media-recorder/WebMOpusEncoder.wasm';
 
