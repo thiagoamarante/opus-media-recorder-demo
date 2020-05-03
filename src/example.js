@@ -69,11 +69,10 @@ let fileName
 let endTime = 30     // 设置音频 recorder 时长
 
 // 用于处理上传的音频文件
-let AudioContext = window.AudioContext || window.webkitAudioContext || false;
 let audioCtx;
 let soundSource;
 let destination;
-let fileReader = new FileReader();
+let fileReader;
 
 /**
  * Upload local audio file
@@ -84,6 +83,7 @@ uploadFile.addEventListener('change', async function () {
         file = this.files[0];
         fileName = file.name.split('.')[0]
         audioCtx = new AudioContext();
+        fileReader = new FileReader()
         fileReader.file = file;
         fileReader.onload = (function(e) {
             audioCtx.decodeAudioData(e.target.result, createSoundSource);
