@@ -5,6 +5,7 @@ All notable changes to this project will be documented in this file.
 ### Changed
 
 - 替换压缩文件为非压
+- 添加webpack打包：不能按照顺序打包，输出文件存在问题，暂时使用gulp打包非压文件
 
 ### 踩坑
 - event-target-shim 存在和window全局变量重名的函数，使用时报错，查了很久！！！

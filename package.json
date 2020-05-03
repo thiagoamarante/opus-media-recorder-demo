@@ -1,0 +1,28 @@
+{
+  "name": "opus-media-recorder",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "gulp -dev"
+  },
+  "devDependencies": {
+    "babel-core": "^6.26.3",
+    "fs": "0.0.1-security",
+    "gulp": "^4.0.2",
+    "gulp-babel": "^7.0.1",
+    "gulp-concat": "^2.6.1",
+    "gulp-foreach": "^0.1.0",
+    "gulp-javascript-obfuscator": "^1.1.6",
+    "gulp-uglify": "^3.0.2",
+    "gulp-util": "^3.0.8",
+    "load-grunt-tasks": "^4.0.0",
+    "module": "^1.2.5",
+    "sprintf-js": "^1.1.2",
+    "stream-combiner2": "^1.1.1",
+    "uglifyjs-webpack-plugin": "^2.2.0",
+    "webpack": "^4.29.6",
+    "webpack-cli": "^3.2.3"
+  }
+}
