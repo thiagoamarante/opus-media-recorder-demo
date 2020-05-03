@@ -28,7 +28,7 @@ gulp.task('build', function (done) {
         gulp.src(releaseList)
             // .pipe(babel())
             // .pipe(uglify())
-            .pipe(concat('opusMediaRecorder.js'))         // 按照[]里的顺序合并文件
+            .pipe(concat('opusRecorder.js'))         // 按照[]里的顺序合并文件
             .pipe(gulp.dest('./dist'))
     ])
     combined.on('error', handleError)
