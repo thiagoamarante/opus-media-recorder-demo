@@ -22,16 +22,11 @@
         <h3>File upload</h3>
     </header>
     <div>
-        <!--文件上传模块，添加input和video-->
         <input type="file" class="localShare" id="uploadFile" style="display: block;" />
-        <audio id="audio" class="audio" autoplay muted controls></audio>
+        <!--<audio id="audioUpload" autoplay muted controls></audio>-->
     </div>
 </section>
 
-<!-- Media recording css control -->
-<section id="mediaRecording" class="controller card" disabled hidden>
-
-</section>
 
 <!-- Recording player -->
 <section class="player card">
@@ -64,11 +59,32 @@
 <script type="text/javascript" src="public/detect-browser.js"></script>
 <script type="text/javascript" src="public/OpusMediaRecorder.js"></script>
 <script type="text/javascript" src="public/encoderWorker.js"></script>
-<script type="text/javascript" src="public/index.js"></script>
+<script type="text/javascript" src="public/api.js"></script>
 <!--Or-->
 <!--<script type="text/javascript" src="dist/opusRecorder.js"></script>-->
 
 <script>
+    let player = document.querySelector('#player');
+    let link = document.querySelector('#link');
+    let uploadFile = document.getElementById('uploadFile')
+    /**
+     * Upload local audio file
+     * 使用FileReader读取上传文件，转换为stream
+     */
+    uploadFile.addEventListener('change', async function () {
+        try {
+            let file = this.files[0];
+            recordToOgg(file, function (blob) {
+                let file = new File([blob], `${fileName}.ogg`, {type: 'audio/ogg;codecs=opus'})
+                link.href = file;
+                link.download = file.name;
+                let url = URL.createObjectURL(blob);
+                player.src = url;
+            })
+        } catch (e) {
+            console.error(e.message);
+        }
+    })
     /*******************************************************************************
      * Debug helpers
      *    This section is only for debugging purpose, library users don't need them.

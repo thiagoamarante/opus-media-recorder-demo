@@ -9,7 +9,7 @@ let releaseList = [
     './public/detect-browser.js',
     './public/OpusMediaRecorder.js',
     './public/encoderWorker.js',
-    './public/index.js'
+    './public/api.js'
 ]
 
 let handleError = function (err) {

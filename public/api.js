@@ -1,21 +1,29 @@
+/**
+ * create audio element
+ * @type {HTMLElement}
+ */
+let localAudio = document.createElement('audio');
+localAudio.muted = true
+localAudio.hidden = true
+localAudio.autoplay = true
+document.body.appendChild(localAudio)
 
-// Player
-let player = document.querySelector('#player');
-let link = document.querySelector('#link');
-let uploadFile = document.getElementById('uploadFile')
-let audioElement = document.getElementById('audio')
-let audioStream
-let fileName
-// 用于处理上传的音频文件
-let audioCtx;
-let RECORDER;
+let stream = null
+let fileName = null;
+let audioCtx = null
+let audioRecorder = {}
+let recordingDuration = 30000;   // 文件录制时间 30s
+let recorderCallback = null
 
-
-// Non-standard options
+/**
+ *  Non-standard options
+ * @type {{OggOpusEncoderWasmPath: string}}
+ */
 const workerOptions = {
     OggOpusEncoderWasmPath: 'https://cdn.jsdelivr.net/npm/opus-media-recorder@0.7.19/OggOpusEncoder.wasm'
 };
 window.MediaRecorder = OpusMediaRecorder;
+
 /**
  * create MediaRecorder instance
  * @param stream
@@ -23,34 +31,34 @@ window.MediaRecorder = OpusMediaRecorder;
  * @returns {*}
  */
 function createMediaRecorder(stream, duration) {
-    // Create recorder object
     let options = {mimeType: 'audio/ogg'};
     let recorder = new MediaRecorder(stream, options, workerOptions, duration);
-
     let dataChunks = [];
-    // Recorder Event Handlers
+
     recorder.onstart = function(){
         dataChunks = [];
-        console.warn('Recorder started');
+        console.log('Recorder started');
     }
 
     recorder.ondataavailable = function(e){
-        console.log('Recorder data available ');
         dataChunks.push(e.data);
+        console.log('Recorder data available ');
     }
 
     recorder.onstop = function(){
-        // When stopped add a link to the player and the download link
+        console.log('recorder complete!')
         let blob = new Blob(dataChunks, {'type': recorder.mimeType});
         dataChunks = [];
-        let audioURL = URL.createObjectURL(blob);
-        player.src = audioURL;
-        link.href = audioURL;
-        link.download = (fileName ? fileName : 'recording') + '.ogg';
-        console.log('Recorder stopped');
-
         if(!blob.size){
             throw new Error('Exception: Blob is empty')
+        }
+
+        if(recorderCallback){
+            recorderCallback(blob)
+            audioRecorder = null
+            audioCtx = null
+            stream = null
+            recorderCallback = null
         }
     }
 
@@ -112,41 +120,19 @@ function createSoundSource(buffer) {
     soundSource.connect(destination);
     soundSource.start();
 
-    audioStream = destination.stream
-    audioElement.srcObject = audioStream
+    localAudio.srcObject = destination.stream
+    stream = destination.stream
 }
 
 /**
- * Upload local audio file
- * 使用FileReader读取上传文件，转换为stream
+ * Audio is ready to start playing
  */
-uploadFile.addEventListener('change', async function () {
+localAudio.addEventListener('canplay', function () {
     try {
-        let file = this.files[0];
-        fileName = file.name.split('.')[0]
-        audioCtx = new AudioContext();
-        let fileReader = new FileReader()
-        fileReader.file = file;
-        fileReader.onload = (function(e) {
-            audioCtx.decodeAudioData(e.target.result, createSoundSource);
-        });
-        fileReader.readAsArrayBuffer(fileReader.file);
-    } catch (e) {
-        console.error(e.message);
-    }
-})
-
-/**
- * audio load complete
- */
-audioElement.addEventListener('canplay', function () {
-    try {
-        if(audioStream){
-            let recordingDuration = 30000
-            RECORDER = createMediaRecorder(audioStream, recordingDuration)
-            console.log('Creating MediaRecorder is successful, Start recorder...')
-            RECORDER.startRecording()
-        }
+        localAudio.play()
+        audioRecorder = createMediaRecorder(stream, recordingDuration)
+        console.log('Creating MediaRecorder is successful, Start recorder...')
+        audioRecorder.startRecording()
     }catch (e) {
         console.log(`MediaRecorder is failed: ${e.message}`);
         Promise.reject(new Error());
@@ -156,19 +142,19 @@ audioElement.addEventListener('canplay', function () {
 /**
  * When the uploaded file is less than 30s, after audio playback ends, stop the recorder
  */
-audioElement.addEventListener("ended", function () {
-    if(RECORDER._state !== 'inactive' && RECORDER._state !== 'stopped'){
-        RECORDER.stopRecording()
+localAudio.addEventListener("ended", function () {
+    if(audioRecorder._state !== 'inactive' && audioRecorder._state !== 'stopped'){
+        audioRecorder.stopRecording()
     }
 });
 
-// Check platform
+/**
+ * Check available content types compatibility
+ */
 window.addEventListener('load', function() {
-    // Check compatibility
     if (OpusMediaRecorder === undefined) {
         console.error('No OpusMediaRecorder found');
     } else {
-        // Check available content types
         let contentTypes = [
             'audio/wave',
             'audio/wav',
@@ -182,3 +168,24 @@ window.addEventListener('load', function() {
         });
     }
 }, false);
+
+/**
+ * Upload local audio file
+ * 使用FileReader读取上传文件，转换为stream
+ */
+function recordToOgg (file, callback){
+    console.log('Recorder audio file to ogg')
+    fileName = file.name.replace(/\.[^\.]+$/, '')
+    audioCtx = new AudioContext();
+    let fileReader = new FileReader()
+    fileReader.file = file;
+    recorderCallback = callback
+
+    fileReader.onload = function(e){
+        console.log('file reade onload...')
+        audioCtx.decodeAudioData(e.target.result).then(createSoundSource).catch(function (error) {
+            console.error(error.toString())
+        })
+    }
+    fileReader.readAsArrayBuffer(fileReader.file);
+}
