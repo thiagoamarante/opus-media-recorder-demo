@@ -3,7 +3,6 @@ let concat = require('gulp-concat');
 let combiner = require('stream-combiner2');
 let uglify = require('gulp-uglify');   //js压缩
 let gutil = require('gulp-util');
-let babel = require("gulp-babel");
 
 let releaseList = [
     './public/event-target-shim.js',
@@ -26,8 +25,6 @@ let handleError = function (err) {
 gulp.task('build', function (done) {
     let combined = combiner.obj([
         gulp.src(releaseList)
-            // .pipe(babel())
-            // .pipe(uglify())
             .pipe(concat('opusRecorder.js'))         // 按照[]里的顺序合并文件
             .pipe(gulp.dest('./dist'))
     ])
