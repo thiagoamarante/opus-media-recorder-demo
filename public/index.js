@@ -65,7 +65,22 @@ function createMediaRecorder(stream) {
     recorder.onerror = e => console.log('Recorder encounters error:' + e.message);
 
     return stream;
-};
+}
+
+/**
+ * 通过AudioContext.createMediaStreamDestination 生成文件流
+ * @param buffer
+ */
+function createSoundSource(buffer) {
+    soundSource = audioCtx.createBufferSource();
+    soundSource.buffer = buffer;
+    destination = audioCtx.createMediaStreamDestination();
+    soundSource.connect(destination);
+    soundSource.start();
+
+    audioStream = destination.stream
+    audioElement.srcObject = audioStream
+}
 
 /**
  * Upload local audio file
@@ -86,22 +101,6 @@ uploadFile.addEventListener('change', async function () {
         console.error(e.message);
     }
 })
-
-/**
- * 通过AudioContext.createMediaStreamDestination 生成文件流
- * @param buffer
- */
-function createSoundSource(buffer) {
-    soundSource = audioCtx.createBufferSource();
-    soundSource.buffer = buffer;
-    destination = audioCtx.createMediaStreamDestination();
-    soundSource.connect(destination);
-    soundSource.start();
-
-    audioStream = destination.stream
-    audioElement.srcObject = audioStream
-}
-
 
 /**
  * audio load complete
