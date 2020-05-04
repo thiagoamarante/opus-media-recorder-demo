@@ -76,9 +76,9 @@
             let file = this.files[0];
             recordToOgg(file, function (blob) {
                 let file = new File([blob], `${fileName}.ogg`, {type: 'audio/ogg;codecs=opus'})
-                link.href = file;
-                link.download = file.name;
                 let url = URL.createObjectURL(blob);
+                link.href = url;
+                link.download = file.name;
                 player.src = url;
             })
         } catch (e) {
