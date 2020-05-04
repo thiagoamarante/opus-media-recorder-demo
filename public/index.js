@@ -1,52 +1,45 @@
-// Non-standard options
-const workerOptions = {
-    OggOpusEncoderWasmPath: 'https://cdn.jsdelivr.net/npm/opus-media-recorder@0.7.19/OggOpusEncoder.wasm'
-};
-window.MediaRecorder = OpusMediaRecorder;
 
 // Player
 let player = document.querySelector('#player');
 let link = document.querySelector('#link');
 let uploadFile = document.getElementById('uploadFile')
-
-// create audio element
-let audioElement = document.createElement('audio')
-audioElement.setAttribute('id', 'audio')
-audioElement.muted = true
-audioElement.autoplay = true
-
+let audioElement = document.getElementById('audio')
 let audioStream
 let fileName
-let endTime = 30     // 设置音频 recorder 时长
-
 // 用于处理上传的音频文件
 let audioCtx;
-let soundSource;
-let destination;
-let fileReader;
-let recorder;
+let RECORDER;
 
+
+// Non-standard options
+const workerOptions = {
+    OggOpusEncoderWasmPath: 'https://cdn.jsdelivr.net/npm/opus-media-recorder@0.7.19/OggOpusEncoder.wasm'
+};
+window.MediaRecorder = OpusMediaRecorder;
 /**
  * create MediaRecorder instance
  * @param stream
+ * @param duration
  * @returns {*}
  */
-function createMediaRecorder(stream) {
+function createMediaRecorder(stream, duration) {
     // Create recorder object
     let options = {mimeType: 'audio/ogg'};
-    recorder = new MediaRecorder(stream, options, workerOptions);
+    let recorder = new MediaRecorder(stream, options, workerOptions, duration);
 
     let dataChunks = [];
     // Recorder Event Handlers
-    recorder.onstart = _ => {
+    recorder.onstart = function(){
         dataChunks = [];
         console.warn('Recorder started');
-    };
-    recorder.ondataavailable = (e) => {
+    }
+
+    recorder.ondataavailable = function(e){
         console.log('Recorder data available ');
         dataChunks.push(e.data);
-    };
-    recorder.onstop = (e) => {
+    }
+
+    recorder.onstop = function(){
         // When stopped add a link to the player and the download link
         let blob = new Blob(dataChunks, {'type': recorder.mimeType});
         dataChunks = [];
@@ -59,12 +52,53 @@ function createMediaRecorder(stream) {
         if(!blob.size){
             throw new Error('Exception: Blob is empty')
         }
-    };
-    recorder.onpause = _ => console.log('Recorder paused');
-    recorder.onresume = _ => console.log('Recorder resumed');
-    recorder.onerror = e => console.log('Recorder encounters error:' + e.message);
+    }
 
-    return stream;
+    recorder.onpause = function(){
+        console.log('Recorder paused')
+    }
+
+    recorder.onresume = function(){
+        console.log('Recorder resumed')
+    }
+
+    recorder.onerror = function (error) {
+        if (!error) {
+            return;
+        }
+
+        if (!error.name) {
+            error.name = 'UnknownError';
+        }
+
+        if (error.name.toString().toLowerCase().indexOf('invalidstate') !== -1) {
+            console.error('The MediaRecorder is not in a state in which the proposed operation is allowed to be executed.', error);
+        } else if (error.name.toString().toLowerCase().indexOf('notsupported') !== -1) {
+            console.error('MIME type (', options.mimeType, ') is not supported.', error);
+        } else if (error.name.toString().toLowerCase().indexOf('security') !== -1) {
+            console.error('MediaRecorder security error', error);
+        }
+
+        // older code below
+        else if (error.name === 'OutOfMemory') {
+            console.error('The UA has exhaused the available memory. User agents SHOULD provide as much additional information as possible in the message attribute.', error);
+        } else if (error.name === 'IllegalStreamModification') {
+            console.error('A modification to the stream has occurred that makes it impossible to continue recording. An example would be the addition of a Track while recording is occurring. User agents SHOULD provide as much additional information as possible in the message attribute.', error);
+        } else if (error.name === 'OtherRecordingError') {
+            console.error('Used for an fatal error other than those listed above. User agents SHOULD provide as much additional information as possible in the message attribute.', error);
+        } else if (error.name === 'GenericError') {
+            console.error('The UA cannot provide the codec or recording option that has been requested.', error);
+        } else {
+            console.error('MediaRecorder Error', error);
+        }
+
+        console.error('Recorder encounters error:' + error.message)
+        if (recorder._state !== 'inactive' && recorder._state !== 'stopped') {
+            recorder.stop();
+        }
+    };
+
+    return recorder
 }
 
 /**
@@ -72,9 +106,9 @@ function createMediaRecorder(stream) {
  * @param buffer
  */
 function createSoundSource(buffer) {
-    soundSource = audioCtx.createBufferSource();
+    let soundSource = audioCtx.createBufferSource();
     soundSource.buffer = buffer;
-    destination = audioCtx.createMediaStreamDestination();
+    let destination = audioCtx.createMediaStreamDestination();
     soundSource.connect(destination);
     soundSource.start();
 
@@ -91,7 +125,7 @@ uploadFile.addEventListener('change', async function () {
         let file = this.files[0];
         fileName = file.name.split('.')[0]
         audioCtx = new AudioContext();
-        fileReader = new FileReader()
+        let fileReader = new FileReader()
         fileReader.file = file;
         fileReader.onload = (function(e) {
             audioCtx.decodeAudioData(e.target.result, createSoundSource);
@@ -108,9 +142,10 @@ uploadFile.addEventListener('change', async function () {
 audioElement.addEventListener('canplay', function () {
     try {
         if(audioStream){
-            createMediaRecorder(audioStream)
+            let recordingDuration = 30000
+            RECORDER = createMediaRecorder(audioStream, recordingDuration)
             console.log('Creating MediaRecorder is successful, Start recorder...')
-            recorder.start()
+            RECORDER.startRecording()
         }
     }catch (e) {
         console.log(`MediaRecorder is failed: ${e.message}`);
@@ -119,25 +154,11 @@ audioElement.addEventListener('canplay', function () {
 })
 
 /**
- * Duration monitoring: When the audio playback duration reaches the set end time, stop the recorder
- */
-audioElement.addEventListener("timeupdate", function () {
-    if (endTime >0  && audioElement.currentTime >= endTime) {
-        audioElement.pause()
-        if(recorder._state !== 'inactive'){
-            console.log('stop recorder')
-            recorder.stop()
-        }
-    }
-});
-
-/**
  * When the uploaded file is less than 30s, after audio playback ends, stop the recorder
  */
 audioElement.addEventListener("ended", function () {
-    if(recorder._state !== 'inactive'){
-        console.log("audio play onended")
-        recorder.stop()
+    if(RECORDER._state !== 'inactive' && RECORDER._state !== 'stopped'){
+        RECORDER.stopRecording()
     }
 });
 

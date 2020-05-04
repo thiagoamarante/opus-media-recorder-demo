@@ -20,13 +20,14 @@ class OpusMediaRecorder extends EventTargetWrapper {
      *
      * @param {MediaStream} stream - The MediaStream to be recorded. This will
      *          be the value of the stream attribute.
-     * @param {MediaRecorderOptions} [options] - A dictionary of options to for
+     * @param {options} [options] - A dictionary of options to for
      *          the UA instructing how the recording will take part.
      *          options.mimeType, if present, will become the value of mimeType
      *          attribute.
      * @param {Object} [workerOptions] This is a NON-STANDARD options to
      *          configure how to import the web worker .wasm compiled binaries
      *          used for encoding.
+     * @param {number} [duration] set file recorder time
      * @param {workerFactory} [workerOptions.encoderWorkerFactory] A factory
      *          function that create a web worker instance of ./encoderWorker.js
      *          and returns it. function(){return new Worker('./encoderWorker.umd.js')}
@@ -38,7 +39,7 @@ class OpusMediaRecorder extends EventTargetWrapper {
      *          Path of ./WebMOpusEncoder.wasm which is used for WebM Opus encoding
      *          by the encoder worker. This is NON-STANDARD.
      */
-    constructor(stream, options = {}, workerOptions = {}) {
+    constructor(stream, options = {}, workerOptions = {}, duration) {
         const {mimeType, audioBitsPerSecond, videoBitsPerSecond, bitsPerSecond} = options; // eslint-disable-line
         // NON-STANDARD options
         const {encoderWorkerFactory, OggOpusEncoderWasmPath, WebMOpusEncoderWasmPath} = workerOptions;
@@ -47,10 +48,11 @@ class OpusMediaRecorder extends EventTargetWrapper {
         // Attributes for the specification conformance. These have their own getters.
         this._stream = stream;
         this._state = 'inactive';
-        this._mimeType = mimeType || '';
+        this._mimeType = mimeType || 'audio/ogg';
         this._audioBitsPerSecond = audioBitsPerSecond || bitsPerSecond;
         /** @type {'inactive'|'readyToInit'|'encoding'|'closed'} */
         this.workerState = 'inactive';
+        this.recordingDuration = duration || 30000;   // Auto-stop recording after specific interval using setRecordingDuration
 
         // Parse MIME Type
         if (!OpusMediaRecorder.isTypeSupported(this._mimeType)) {
@@ -261,12 +263,7 @@ class OpusMediaRecorder extends EventTargetWrapper {
 
                 // If start() is already called initialize worker
                 if (this.state === 'recording') {
-                    this._postMessageToWorker('init',
-                        {
-                            sampleRate,
-                            channelCount,
-                            bitsPerSecond: this.audioBitsPerSecond
-                        });
+                    this._postMessageToWorker('init', {sampleRate, channelCount, bitsPerSecond: this.audioBitsPerSecond});
                 }
                 break;
 
@@ -281,7 +278,6 @@ class OpusMediaRecorder extends EventTargetWrapper {
                 if (command === 'lastEncodedData') {
                     eventToPush = new window.Event('stop');
                     this.dispatchEvent(eventToPush);
-
                     this.workerState = 'closed';
                 }
                 break;
@@ -347,6 +343,41 @@ class OpusMediaRecorder extends EventTargetWrapper {
     }
 
     /**
+     * auto-stop the recording after certain minutes.
+     * @method
+     * @memberof RecordRTC
+     * @instance
+     * @example
+     * @param counter
+     */
+    handleRecordingDuration(counter) {
+        counter = counter || 0;
+        let self = this
+
+        if (self._state === 'paused') {
+            setTimeout(function() {
+                self.handleRecordingDuration(counter);
+            }, 1000);
+            return;
+        }
+
+        if (self._state === 'stopped') {
+            return;
+        }
+
+        if (counter >= self.recordingDuration) {
+            self.stopRecording();
+            return;
+        }
+
+        counter += 1000; // 1-second
+
+        setTimeout(function() {
+            self.handleRecordingDuration(counter);
+        }, 1000);
+    }
+
+    /**
      * Begins recording media; this method can optionally be passed a timeslice
      * argument with a value in milliseconds.
      * @param {number} timeslice - If this is specified, the media will be captured
@@ -354,7 +385,7 @@ class OpusMediaRecorder extends EventTargetWrapper {
      *        of recording the media in a single large chunk. In other words, an
      *        undefined value of timeslice will be understood as the largest long value.
      */
-    start(timeslice = Number.MAX_SAFE_INTEGER) {
+    startRecording(timeslice = Number.MAX_SAFE_INTEGER) {
         if (this.state !== 'inactive') {
             throw new Error('DOMException: INVALID_STATE_ERR, state must be inactive.');
         }
@@ -391,12 +422,11 @@ class OpusMediaRecorder extends EventTargetWrapper {
         // If the worker is already loaded then start
         if (this.workerState === 'readyToInit') {
             const {sampleRate, channelCount} = this;
-            this._postMessageToWorker('init',
-                {
-                    sampleRate,
-                    channelCount,
-                    bitsPerSecond: this.audioBitsPerSecond
-                });
+            this._postMessageToWorker('init', {sampleRate, channelCount, bitsPerSecond: this.audioBitsPerSecond});
+        }
+
+        if (this.recordingDuration) {
+            this.handleRecordingDuration();
         }
     }
 
@@ -404,7 +434,7 @@ class OpusMediaRecorder extends EventTargetWrapper {
      * Stops recording, at which point a dataavailable event containing
      * the final Blob of saved data is fired. No more recording occurs.
      */
-    stop() {
+    stopRecording() {
         if (this.state === 'inactive') {
             throw new Error('DOMException: INVALID_STATE_ERR, state must NOT be inactive.');
         }
@@ -423,7 +453,7 @@ class OpusMediaRecorder extends EventTargetWrapper {
     /**
      * Pauses the recording of media.
      */
-    pause() {
+    pauseRecording() {
         if (this.state === 'inactive') {
             throw new Error('DOMException: INVALID_STATE_ERR, state must NOT be inactive.');
         }
@@ -440,7 +470,7 @@ class OpusMediaRecorder extends EventTargetWrapper {
     /**
      * Resumes recording of media after having been paused.
      */
-    resume() {
+    resumeRecording() {
         if (this.state === 'inactive') {
             throw new Error('DOMException: INVALID_STATE_ERR, state must NOT be inactive.');
         }

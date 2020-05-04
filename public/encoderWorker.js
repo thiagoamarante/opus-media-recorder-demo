@@ -312,9 +312,7 @@ var Module = (function () {
                     this.mOutputBuffer = this.memory.mallocUint8Buffer(OPUS_OUTPUT_MAX_LENGTH);
 
                     // TODO: Figure out how to delete this thing.
-                    this.interleavedBuffers = (channelCount !== 1)
-                        ? new Float32Array(BUFFER_LENGTH * channelCount)
-                        : undefined;
+                    this.interleavedBuffers = (channelCount !== 1) ? new Float32Array(BUFFER_LENGTH * channelCount) : undefined;
                 }
 
                 encode(buffers) {
@@ -323,10 +321,8 @@ var Module = (function () {
 
                     while (sampleIndex < samples.length) {
                         // Copy samples to input buffer
-                        let lengthToCopy = Math.min(this.mInputBuffer.length - this.inputBufferIndex,
-                            samples.length - sampleIndex);
-                        this.mInputBuffer.set(samples.subarray(sampleIndex, sampleIndex + lengthToCopy),
-                            this.inputBufferIndex);
+                        let lengthToCopy = Math.min(this.mInputBuffer.length - this.inputBufferIndex, samples.length - sampleIndex);
+                        this.mInputBuffer.set(samples.subarray(sampleIndex, sampleIndex + lengthToCopy), this.inputBufferIndex);
                         this.inputBufferIndex += lengthToCopy;
 
                         // When mInputBuffer is fill, then encode.
@@ -339,7 +335,8 @@ var Module = (function () {
                                 this.mInputBuffer.pointer,
                                 mInputLength.pointer,
                                 this.mResampledBuffer.pointer,
-                                mOutputLength.pointer);
+                                mOutputLength.pointer
+                            );
                             mInputLength.free();
                             mOutputLength.free();
                             if (err !== RESAMPLER_ERR_SUCCESS) {
@@ -355,9 +352,7 @@ var Module = (function () {
                                 throw new Error('Opus encoding error.');
                             }
                             // Input packget to Ogg or WebM page generator
-                            this._container.writeFrame(this.mOutputBuffer.pointer,
-                                packetLength,
-                                this.outputSamplePerChannel); // 960 samples
+                            this._container.writeFrame(this.mOutputBuffer.pointer, packetLength, this.outputSamplePerChannel); // 960 samples
                             this.inputBufferIndex = 0;
                         }
                         sampleIndex += lengthToCopy;
