@@ -921,7 +921,7 @@ const BUFFER_SIZE = 4096;
  * Reference: https://w3c.github.io/mediacapture-record/#mediarecorder-api
  * @extends EventTarget
  */
-class OpusMediaRecorder extends EventTargetWrapper {
+class OggOpusMediaRecorder extends EventTargetWrapper {
     /**
      * A function that returns the encoder web worker
      * @name workerFactory
@@ -933,13 +933,14 @@ class OpusMediaRecorder extends EventTargetWrapper {
      *
      * @param {MediaStream} stream - The MediaStream to be recorded. This will
      *          be the value of the stream attribute.
-     * @param {MediaRecorderOptions} [options] - A dictionary of options to for
+     * @param {options} [options] - A dictionary of options to for
      *          the UA instructing how the recording will take part.
      *          options.mimeType, if present, will become the value of mimeType
      *          attribute.
      * @param {Object} [workerOptions] This is a NON-STANDARD options to
      *          configure how to import the web worker .wasm compiled binaries
      *          used for encoding.
+     * @param {number} [duration] set file recorder time
      * @param {workerFactory} [workerOptions.encoderWorkerFactory] A factory
      *          function that create a web worker instance of ./encoderWorker.js
      *          and returns it. function(){return new Worker('./encoderWorker.umd.js')}
@@ -951,7 +952,7 @@ class OpusMediaRecorder extends EventTargetWrapper {
      *          Path of ./WebMOpusEncoder.wasm which is used for WebM Opus encoding
      *          by the encoder worker. This is NON-STANDARD.
      */
-    constructor(stream, options = {}, workerOptions = {}) {
+    constructor(stream, options = {}, workerOptions = {}, duration) {
         const {mimeType, audioBitsPerSecond, videoBitsPerSecond, bitsPerSecond} = options; // eslint-disable-line
         // NON-STANDARD options
         const {encoderWorkerFactory, OggOpusEncoderWasmPath, WebMOpusEncoderWasmPath} = workerOptions;
@@ -960,16 +961,17 @@ class OpusMediaRecorder extends EventTargetWrapper {
         // Attributes for the specification conformance. These have their own getters.
         this._stream = stream;
         this._state = 'inactive';
-        this._mimeType = mimeType || '';
+        this._mimeType = mimeType || 'audio/ogg';
         this._audioBitsPerSecond = audioBitsPerSecond || bitsPerSecond;
         /** @type {'inactive'|'readyToInit'|'encoding'|'closed'} */
         this.workerState = 'inactive';
+        this.recordingDuration = duration || 30000;   // Auto-stop recording after specific interval using setRecordingDuration
 
         // Parse MIME Type
-        if (!OpusMediaRecorder.isTypeSupported(this._mimeType)) {
+        if (!OggOpusMediaRecorder.isTypeSupported(this._mimeType)) {
             throw new TypeError('invalid arguments, a MIME Type is not supported');
         }
-        switch (OpusMediaRecorder._parseType(this._mimeType).subtype) {
+        switch (OggOpusMediaRecorder._parseType(this._mimeType).subtype) {
             case 'wave':
             case 'wav':
                 this._mimeType = 'audio/wave';
@@ -1031,10 +1033,10 @@ class OpusMediaRecorder extends EventTargetWrapper {
         } else if (self.location) {
             workerDir = self.location.href;
         }
-        workerDir = workerDir.substr(0, workerDir.lastIndexOf('/')) + '/public/encoderWorker.js';
+        workerDir = workerDir.substr(0, workerDir.lastIndexOf('/')) + '/src/encoderWorker.js';
         // If worker function is imported via <script> tag, make it blob to get URL.
-        if (typeof OpusMediaRecorder.encoderWorker === 'function') {
-            workerDir = URL.createObjectURL(new Blob([`(${OpusMediaRecorder.encoderWorker})()`]));
+        if (typeof OggOpusMediaRecorder.encoderWorker === 'function') {
+            workerDir = URL.createObjectURL(new Blob([`(${OggOpusMediaRecorder.encoderWorker})()`]));
         }
 
         // Spawn a encoder worker
@@ -1174,12 +1176,7 @@ class OpusMediaRecorder extends EventTargetWrapper {
 
                 // If start() is already called initialize worker
                 if (this.state === 'recording') {
-                    this._postMessageToWorker('init',
-                        {
-                            sampleRate,
-                            channelCount,
-                            bitsPerSecond: this.audioBitsPerSecond
-                        });
+                    this._postMessageToWorker('init', {sampleRate, channelCount, bitsPerSecond: this.audioBitsPerSecond});
                 }
                 break;
 
@@ -1194,7 +1191,6 @@ class OpusMediaRecorder extends EventTargetWrapper {
                 if (command === 'lastEncodedData') {
                     eventToPush = new window.Event('stop');
                     this.dispatchEvent(eventToPush);
-
                     this.workerState = 'closed';
                 }
                 break;
@@ -1260,6 +1256,41 @@ class OpusMediaRecorder extends EventTargetWrapper {
     }
 
     /**
+     * auto-stop the recording after certain minutes.
+     * @method
+     * @memberof RecordRTC
+     * @instance
+     * @example
+     * @param counter
+     */
+    handleRecordingDuration(counter) {
+        counter = counter || 0;
+        let self = this
+
+        if (self._state === 'paused') {
+            setTimeout(function() {
+                self.handleRecordingDuration(counter);
+            }, 1000);
+            return;
+        }
+
+        if (self._state === 'stopped') {
+            return;
+        }
+
+        if (counter >= self.recordingDuration) {
+            self.stopRecording();
+            return;
+        }
+
+        counter += 1000; // 1-second
+
+        setTimeout(function() {
+            self.handleRecordingDuration(counter);
+        }, 1000);
+    }
+
+    /**
      * Begins recording media; this method can optionally be passed a timeslice
      * argument with a value in milliseconds.
      * @param {number} timeslice - If this is specified, the media will be captured
@@ -1267,7 +1298,7 @@ class OpusMediaRecorder extends EventTargetWrapper {
      *        of recording the media in a single large chunk. In other words, an
      *        undefined value of timeslice will be understood as the largest long value.
      */
-    start(timeslice = Number.MAX_SAFE_INTEGER) {
+    startRecording(timeslice = Number.MAX_SAFE_INTEGER) {
         if (this.state !== 'inactive') {
             throw new Error('DOMException: INVALID_STATE_ERR, state must be inactive.');
         }
@@ -1304,12 +1335,11 @@ class OpusMediaRecorder extends EventTargetWrapper {
         // If the worker is already loaded then start
         if (this.workerState === 'readyToInit') {
             const {sampleRate, channelCount} = this;
-            this._postMessageToWorker('init',
-                {
-                    sampleRate,
-                    channelCount,
-                    bitsPerSecond: this.audioBitsPerSecond
-                });
+            this._postMessageToWorker('init', {sampleRate, channelCount, bitsPerSecond: this.audioBitsPerSecond});
+        }
+
+        if (this.recordingDuration) {
+            this.handleRecordingDuration();
         }
     }
 
@@ -1317,7 +1347,7 @@ class OpusMediaRecorder extends EventTargetWrapper {
      * Stops recording, at which point a dataavailable event containing
      * the final Blob of saved data is fired. No more recording occurs.
      */
-    stop() {
+    stopRecording() {
         if (this.state === 'inactive') {
             throw new Error('DOMException: INVALID_STATE_ERR, state must NOT be inactive.');
         }
@@ -1336,7 +1366,7 @@ class OpusMediaRecorder extends EventTargetWrapper {
     /**
      * Pauses the recording of media.
      */
-    pause() {
+    pauseRecording() {
         if (this.state === 'inactive') {
             throw new Error('DOMException: INVALID_STATE_ERR, state must NOT be inactive.');
         }
@@ -1353,7 +1383,7 @@ class OpusMediaRecorder extends EventTargetWrapper {
     /**
      * Resumes recording of media after having been paused.
      */
-    resume() {
+    resumeRecording() {
         if (this.state === 'inactive') {
             throw new Error('DOMException: INVALID_STATE_ERR, state must NOT be inactive.');
         }
@@ -1396,7 +1426,7 @@ class OpusMediaRecorder extends EventTargetWrapper {
             return true;
         }
         try {
-            var {type, subtype, codec} = OpusMediaRecorder._parseType(mimeType);
+            var {type, subtype, codec} = OggOpusMediaRecorder._parseType(mimeType);
         } catch (error) {
             // 2. If not a valid string, return false.
             return false;
@@ -1465,7 +1495,7 @@ class OpusMediaRecorder extends EventTargetWrapper {
     'pause', // Called to handle the pause event.
     'resume', // Called to handle the resume event.
     'error' // Called to handle a MediaRecorderErrorEvent.
-].forEach(name => defineEventAttribute(OpusMediaRecorder.prototype, name));
+].forEach(name => defineEventAttribute(OggOpusMediaRecorder.prototype, name));
 
 // MS Edge specific monkey patching:
 // onaudioprocess callback cannot be triggered more than twice when postMessage
@@ -1478,9 +1508,8 @@ if (browser && browser.name === 'edge') {
         };
     })();
 }
-/********************************************************************************************************************
+/**
  ************************************************* commonFunctions.js begin *****************************************
- ********************************************************************************************************************
  */
 
 /**
@@ -1721,15 +1750,10 @@ class EmscriptenMemoryAllocator {
     }
 }
 
-/********************************************************************************************************************
+/**
  ********************************************* commonFunctions.js end ***********************************************
  ********************************************************************************************************************
- */
-
-
-/********************************************************************************************************************
  ********************************************* OggOpusEncoder.js begin **********************************************
- ********************************************************************************************************************
  */
 var Module = (function () {
     var _scriptDir = typeof document !== 'undefined' && document.currentScript ? document.currentScript.src : undefined;
@@ -1738,94 +1762,154 @@ var Module = (function () {
             Module = Module || {};
 
             var Module = typeof Module !== "undefined" ? Module : {};
+            /**
+             ********************************* OpusEncoder.js start ************************************************
+             *******************************************************************************************************
+             */
+
+            /*** Configuration*/
             const OPUS_APPLICATION = 2049;
-            const OPUS_OUTPUT_SAMPLE_RATE = 48e3;
-            const OPUS_OUTPUT_MAX_LENGTH = 4e3;
-            const OPUS_FRAME_SIZE = 20;
-            const SPEEX_RESAMPLE_QUALITY = 6;
+            /** Defined in opus_defines.h
+             *  2048: OPUS_APPLICATION_VOIP = Voice (Lower fidelity)
+             *  2049: OPUS_APPLICATION_AUDIO = Full Band Audio (Highest fidelity)
+             *  2051: OPUS_APPLICATION_RESTRICTED_LOWDELAY = Restricted Low Delay (Lowest latency) */
+            const OPUS_OUTPUT_SAMPLE_RATE = 48000; // Desired encoding sample rate. Audio will be resampled
+            const OPUS_OUTPUT_MAX_LENGTH = 4000;
+            const OPUS_FRAME_SIZE = 20; // Specified in ms.
+            const SPEEX_RESAMPLE_QUALITY = 6; // Value between 0 and 10 inclusive. 10 being highest quality.
             const BUFFER_LENGTH = 4096;
+
+            /*** Constants used for libraries*/
+            // in opus_defines.h
             const OPUS_OK = 0;
             const OPUS_SET_BITRATE_REQUEST = 4002;
+            // in speex_resampler.h
             const RESAMPLER_ERR_SUCCESS = 0;
 
             class _OpusEncoder {
                 constructor(inputSampleRate, channelCount, bitsPerSecond = undefined) {
-                    this.config = {inputSampleRate: inputSampleRate, channelCount: channelCount};
+                    this.config = {
+                        inputSampleRate, // Usually 44100Hz or 48000Hz
+                        channelCount
+                    };
+
+                    // Emscripten memory allocator
                     this.memory = new EmscriptenMemoryAllocator(Module);
+                    // libopus functions imported from WASM
                     this._opus_encoder_create = Module._opus_encoder_create;
                     this._opus_encoder_ctl = Module._opus_encoder_ctl;
                     this._opus_encode_float = Module._opus_encode_float;
                     this._opus_encoder_destroy = Module._opus_encoder_destroy;
+                    // SpeexDSP functions
                     this._speex_resampler_init = Module._speex_resampler_init;
                     this._speex_resampler_process_interleaved_float = Module._speex_resampler_process_interleaved_float;
                     this._speex_resampler_destroy = Module._speex_resampler_destroy;
-                    this._container = new Module.Container;
-                    this._container.init(OPUS_OUTPUT_SAMPLE_RATE, channelCount, Math.floor(Math.random() * 4294967295));
+                    // Ogg container imported using WebIDL binding
+                    this._container = new Module.Container();
+                    this._container.init(OPUS_OUTPUT_SAMPLE_RATE, channelCount, Math.floor(Math.random() * 0xFFFFFFFF));
+
                     this.OpusInitCodec(OPUS_OUTPUT_SAMPLE_RATE, channelCount, bitsPerSecond);
                     this.SpeexInitResampler(inputSampleRate, OPUS_OUTPUT_SAMPLE_RATE, channelCount);
-                    this.inputSamplesPerChannel = inputSampleRate * OPUS_FRAME_SIZE / 1e3;
-                    this.outputSamplePerChannel = OPUS_OUTPUT_SAMPLE_RATE * OPUS_FRAME_SIZE / 1e3;
+
+                    this.inputSamplesPerChannel = inputSampleRate * OPUS_FRAME_SIZE / 1000;
+                    this.outputSamplePerChannel = OPUS_OUTPUT_SAMPLE_RATE * OPUS_FRAME_SIZE / 1000;
+
+                    // Initialize all buffers
+                    //  |input buffer| =={reampler}=> |resampled buffer| =={encoder}=> |output buffer|
                     this.inputBufferIndex = 0;
                     this.mInputBuffer = this.memory.mallocFloat32Buffer(this.inputSamplesPerChannel * channelCount);
                     this.mResampledBuffer = this.memory.mallocFloat32Buffer(this.outputSamplePerChannel * channelCount);
                     this.mOutputBuffer = this.memory.mallocUint8Buffer(OPUS_OUTPUT_MAX_LENGTH);
-                    this.interleavedBuffers = channelCount !== 1 ? new Float32Array(BUFFER_LENGTH * channelCount) : undefined
+
+                    // TODO: Figure out how to delete this thing.
+                    this.interleavedBuffers = (channelCount !== 1) ? new Float32Array(BUFFER_LENGTH * channelCount) : undefined;
                 }
 
                 encode(buffers) {
                     let samples = this.interleave(buffers);
                     let sampleIndex = 0;
+
                     while (sampleIndex < samples.length) {
+                        // Copy samples to input buffer
                         let lengthToCopy = Math.min(this.mInputBuffer.length - this.inputBufferIndex, samples.length - sampleIndex);
                         this.mInputBuffer.set(samples.subarray(sampleIndex, sampleIndex + lengthToCopy), this.inputBufferIndex);
                         this.inputBufferIndex += lengthToCopy;
+
+                        // When mInputBuffer is fill, then encode.
                         if (this.inputBufferIndex >= this.mInputBuffer.length) {
+                            // Resampling
                             let mInputLength = this.memory.mallocUint32(this.inputSamplesPerChannel);
                             let mOutputLength = this.memory.mallocUint32(this.outputSamplePerChannel);
-                            let err = this._speex_resampler_process_interleaved_float(this.resampler, this.mInputBuffer.pointer, mInputLength.pointer, this.mResampledBuffer.pointer, mOutputLength.pointer);
+                            let err = this._speex_resampler_process_interleaved_float(
+                                this.resampler,
+                                this.mInputBuffer.pointer,
+                                mInputLength.pointer,
+                                this.mResampledBuffer.pointer,
+                                mOutputLength.pointer
+                            );
                             mInputLength.free();
                             mOutputLength.free();
                             if (err !== RESAMPLER_ERR_SUCCESS) {
-                                throw new Error("Resampling error.")
+                                throw new Error('Resampling error.');
                             }
-                            let packetLength = this._opus_encode_float(this.encoder, this.mResampledBuffer.pointer, this.outputSamplePerChannel, this.mOutputBuffer.pointer, this.mOutputBuffer.length);
+                            // Encoding
+                            let packetLength = this._opus_encode_float(this.encoder,
+                                this.mResampledBuffer.pointer,
+                                this.outputSamplePerChannel,
+                                this.mOutputBuffer.pointer,
+                                this.mOutputBuffer.length);
                             if (packetLength < 0) {
-                                throw new Error("Opus encoding error.")
+                                throw new Error('Opus encoding error.');
                             }
-                            this._container.writeFrame(this.mOutputBuffer.pointer, packetLength, this.outputSamplePerChannel);
-                            this.inputBufferIndex = 0
+                            // Input packget to Ogg or WebM page generator
+                            this._container.writeFrame(this.mOutputBuffer.pointer, packetLength, this.outputSamplePerChannel); // 960 samples
+                            this.inputBufferIndex = 0;
                         }
-                        sampleIndex += lengthToCopy
+                        sampleIndex += lengthToCopy;
                     }
                 }
 
+                /**
+                 * Free up memory before close the web worker.
+                 */
                 close() {
-                    const {channelCount: channelCount} = this.config;
+                    // Encode the remaining buffers first.
+                    const {channelCount} = this.config;
+                    // Fill zero to buffers, size is the same as re rest of inputBuffer.
                     let finalFrameBuffers = [];
                     for (let i = 0; i < channelCount; ++i) {
-                        finalFrameBuffers.push(new Float32Array(BUFFER_LENGTH - this.inputBufferIndex / channelCount))
+                        finalFrameBuffers.push(new Float32Array(BUFFER_LENGTH - (this.inputBufferIndex / channelCount)));
                     }
                     this.encode(finalFrameBuffers);
+
+                    // By destroying the container it may emit the remaining buffer.
                     Module.destroy(this._container);
                     this.mInputBuffer.free();
                     this.mResampledBuffer.free();
                     this.mOutputBuffer.free();
                     this._opus_encoder_destroy(this.encoder);
-                    this._speex_resampler_destroy(this.resampler)
+                    this._speex_resampler_destroy(this.resampler);
                 }
 
+                /**
+                 * Interleave the channel buffer.
+                 * @param {Float32Array[]} channelBuffers - An array of buffers to interleave.
+                 */
                 interleave(channelBuffers) {
                     const chCount = channelBuffers.length;
+
+                    // if it only has one channel, no interleave needed.
                     if (chCount === 1) {
-                        return channelBuffers[0]
+                        return channelBuffers[0];
                     }
+                    // Format: | ch0 | ch1 | ch0 | ch1 | ch0 | ch1 | ch0 | ch1 | ...
                     for (let ch = 0; ch < chCount; ch++) {
                         let buffer = channelBuffers[ch];
                         for (let i = 0; i < buffer.length; i++) {
-                            this.interleavedBuffers[i * chCount + ch] = buffer[i]
+                            this.interleavedBuffers[i * chCount + ch] = buffer[i];
                         }
                     }
-                    return this.interleavedBuffers
+                    return this.interleavedBuffers;
                 }
 
                 OpusInitCodec(outRate, chCount, bitRate = undefined) {
@@ -1834,43 +1918,64 @@ var Module = (function () {
                     let err = mErr.value;
                     mErr.free();
                     if (err !== OPUS_OK) {
-                        throw new Error("Opus encodor initialization failed.")
+                        throw new Error('Opus encodor initialization failed.');
                     }
+                    /** Configures the bitrate in the encoder.
+                     * Rates from 500 to 512000 bits per second are meaningful, as well as the
+                     * special values #OPUS_AUTO (-1000) and #OPUS_BITRATE_MAX (-1).
+                     * The value #OPUS_BITRATE_MAX can be used to cause the codec to use as much
+                     * rate as it can, which is useful for controlling the rate by adjusting the
+                     * output buffer size. The default is determined based on the number of
+                     * channels and the input sampling rate.
+                     */
                     if (bitRate) {
-                        this.OpusSetOpusControl(OPUS_SET_BITRATE_REQUEST, bitRate)
+                        this.OpusSetOpusControl(OPUS_SET_BITRATE_REQUEST, bitRate);
                     }
                 }
 
                 OpusSetOpusControl(request, vaArg) {
                     let value = this.memory.mallocInt32(vaArg);
                     this._opus_encoder_ctl(this.encoder, request, value.pointer);
-                    value.free()
+                    value.free();
                 }
 
                 SpeexInitResampler(inputRate, outputRate, chCount) {
                     let mErr = this.memory.mallocUint32(undefined);
-                    this.resampler = this._speex_resampler_init(chCount, inputRate, outputRate, SPEEX_RESAMPLE_QUALITY, mErr.pointer);
+                    this.resampler = this._speex_resampler_init(chCount, inputRate, outputRate,
+                        SPEEX_RESAMPLE_QUALITY, mErr.pointer);
                     let err = mErr.value;
                     mErr.free();
                     if (err !== RESAMPLER_ERR_SUCCESS) {
-                        throw new Error("Initializing resampler failed.")
+                        throw new Error('Initializing resampler failed.');
                     }
                 }
             }
 
+            /**
+             * Define the encoder module interface. The worker will interact with
+             * the encoder via those functions only.
+             */
             Module.init = function (inputSampleRate, channelCount, bitsPerSecond) {
                 Module.encodedBuffers = [];
-                Module.encoder = new _OpusEncoder(inputSampleRate, channelCount, bitsPerSecond)
+                Module.encoder = new _OpusEncoder(inputSampleRate, channelCount, bitsPerSecond);
             };
+
             Module.encode = function (buffers) {
-                Module.encoder.encode(buffers)
+                Module.encoder.encode(buffers);
             };
+
             Module.flush = function () {
-                return Module.encodedBuffers.splice(0, Module.encodedBuffers.length)
+                return Module.encodedBuffers.splice(0, Module.encodedBuffers.length);
             };
+
             Module.close = function () {
-                Module.encoder.close()
+                Module.encoder.close();
             };
+            /**
+             ********************************** OpusEncoder.js end ************************************************
+             * @type {{}}
+             */
+
             var moduleOverrides = {};
             var key;
             for (key in Module) {
@@ -2667,7 +2772,7 @@ if (typeof exports === 'object' && typeof module === 'object') {
     exports["Module"] = Module;
 }
 
-/********************************************************************************************************************
+/**
  ********************************************* OggOpusEncoder.js end ************************************************
  ********************************************************************************************************************
  */
@@ -2757,121 +2862,142 @@ if (typeof WorkerGlobalScope !== 'undefined' && self instanceof WorkerGlobalScop
     initWorker(self);
 }
 
-// Non-standard options
+/**
+ * create audio element
+ * @type {HTMLElement}
+ */
+let localAudio = document.createElement('audio');
+localAudio.muted = true
+localAudio.hidden = true
+localAudio.autoplay = true
+document.body.appendChild(localAudio)
+
+let stream = null
+let fileName = null;
+let audioCtx = null
+let audioRecorder = {}
+let recordingDuration = 30000;   // 文件录制时间 30s
+let recorderCallback = null
+
+/**
+ *  Non-standard options
+ * @type {{OggOpusEncoderWasmPath: string}}
+ */
 const workerOptions = {
-    OggOpusEncoderWasmPath: 'https://cdn.jsdelivr.net/npm/opus-media-recorder@0.7.19/OggOpusEncoder.wasm'
+    OggOpusEncoderWasmPath: './OggOpusEncoder.wasm',
+    // OggOpusEncoderWasmPath: 'https://cdn.jsdelivr.net/npm/opus-media-recorder@0.7.19/OggOpusEncoder.wasm'
 };
-window.MediaRecorder = OpusMediaRecorder;
-
-// Player
-let player = document.querySelector('#player');
-let link = document.querySelector('#link');
-let uploadFile = document.getElementById('uploadFile')
-
-// create audio element
-let audioElement = document.createElement('audio')
-audioElement.setAttribute('id', 'audio')
-audioElement.muted = true
-audioElement.autoplay = true
-
-let audioStream
-let fileName
-let endTime = 30     // 设置音频 recorder 时长
-
-// 用于处理上传的音频文件
-let audioCtx;
-let soundSource;
-let destination;
-let fileReader;
-let recorder;
+window.MediaRecorder = OggOpusMediaRecorder;
 
 /**
  * create MediaRecorder instance
  * @param stream
+ * @param duration
  * @returns {*}
  */
-function createMediaRecorder(stream) {
-    // Create recorder object
+function createMediaRecorder(stream, duration) {
     let options = {mimeType: 'audio/ogg'};
-    recorder = new MediaRecorder(stream, options, workerOptions);
-
+    let recorder = new MediaRecorder(stream, options, workerOptions, duration);
     let dataChunks = [];
-    // Recorder Event Handlers
-    recorder.onstart = _ => {
+
+    recorder.onstart = function(){
         dataChunks = [];
-        console.warn('Recorder started');
-    };
-    recorder.ondataavailable = (e) => {
-        console.log('Recorder data available ');
+        console.log('Recorder started');
+    }
+
+    recorder.ondataavailable = function(e){
         dataChunks.push(e.data);
-    };
-    recorder.onstop = (e) => {
-        // When stopped add a link to the player and the download link
+        console.log('Recorder data available ');
+    }
+
+    recorder.onstop = function(){
+        console.log('recorder complete!')
         let blob = new Blob(dataChunks, {'type': recorder.mimeType});
         dataChunks = [];
-        let audioURL = URL.createObjectURL(blob);
-        player.src = audioURL;
-        link.href = audioURL;
-        link.download = (fileName ? fileName : 'recording') + '.ogg';
-        console.log('Recorder stopped');
-
         if(!blob.size){
             throw new Error('Exception: Blob is empty')
         }
-    };
-    recorder.onpause = _ => console.log('Recorder paused');
-    recorder.onresume = _ => console.log('Recorder resumed');
-    recorder.onerror = e => console.log('Recorder encounters error:' + e.message);
 
-    return stream;
-};
-
-/**
- * Upload local audio file
- * 使用FileReader读取上传文件，转换为stream
- */
-uploadFile.addEventListener('change', async function () {
-    try {
-        let file = this.files[0];
-        fileName = file.name.split('.')[0]
-        audioCtx = new AudioContext();
-        fileReader = new FileReader()
-        fileReader.file = file;
-        fileReader.onload = (function(e) {
-            audioCtx.decodeAudioData(e.target.result, createSoundSource);
-        });
-        fileReader.readAsArrayBuffer(fileReader.file);
-    } catch (e) {
-        console.error(e.message);
+        if(recorderCallback){
+            recorderCallback(blob)
+            audioRecorder = null
+            audioCtx = null
+            stream = null
+            recorderCallback = null
+        }
     }
-})
+
+    recorder.onpause = function(){
+        console.log('Recorder paused')
+    }
+
+    recorder.onresume = function(){
+        console.log('Recorder resumed')
+    }
+
+    recorder.onerror = function (error) {
+        if (!error) {
+            return;
+        }
+
+        if (!error.name) {
+            error.name = 'UnknownError';
+        }
+
+        if (error.name.toString().toLowerCase().indexOf('invalidstate') !== -1) {
+            console.error('The MediaRecorder is not in a state in which the proposed operation is allowed to be executed.', error);
+        } else if (error.name.toString().toLowerCase().indexOf('notsupported') !== -1) {
+            console.error('MIME type (', options.mimeType, ') is not supported.', error);
+        } else if (error.name.toString().toLowerCase().indexOf('security') !== -1) {
+            console.error('MediaRecorder security error', error);
+        }
+
+        // older code below
+        else if (error.name === 'OutOfMemory') {
+            console.error('The UA has exhaused the available memory. User agents SHOULD provide as much additional information as possible in the message attribute.', error);
+        } else if (error.name === 'IllegalStreamModification') {
+            console.error('A modification to the stream has occurred that makes it impossible to continue recording. An example would be the addition of a Track while recording is occurring. User agents SHOULD provide as much additional information as possible in the message attribute.', error);
+        } else if (error.name === 'OtherRecordingError') {
+            console.error('Used for an fatal error other than those listed above. User agents SHOULD provide as much additional information as possible in the message attribute.', error);
+        } else if (error.name === 'GenericError') {
+            console.error('The UA cannot provide the codec or recording option that has been requested.', error);
+        } else {
+            console.error('MediaRecorder Error', error);
+        }
+
+        console.error('Recorder encounters error:' + error.message)
+        if (recorder._state !== 'inactive' && recorder._state !== 'stopped') {
+            recorder.stop();
+        }
+    };
+
+    return recorder
+}
 
 /**
  * 通过AudioContext.createMediaStreamDestination 生成文件流
  * @param buffer
  */
 function createSoundSource(buffer) {
-    soundSource = audioCtx.createBufferSource();
+    let soundSource = audioCtx.createBufferSource();
     soundSource.buffer = buffer;
-    destination = audioCtx.createMediaStreamDestination();
+    let destination = audioCtx.createMediaStreamDestination();
     soundSource.connect(destination);
     soundSource.start();
 
-    audioStream = destination.stream
-    audioElement.srcObject = audioStream
+    localAudio.srcObject = destination.stream
+    stream = destination.stream
 }
 
-
 /**
- * audio load complete
+ * Audio is ready to start playing
  */
-audioElement.addEventListener('canplay', function () {
+localAudio.addEventListener('canplay', function () {
     try {
-        if(audioStream){
-            createMediaRecorder(audioStream)
-            console.log('Creating MediaRecorder is successful, Start recorder...')
-            recorder.start()
-        }
+        localAudio.play()
+        audioRecorder = createMediaRecorder(stream, recordingDuration)
+        console.log('Creating MediaRecorder is successful, Start recorder...')
+        audioRecorder.startRecording()
     }catch (e) {
         console.log(`MediaRecorder is failed: ${e.message}`);
         Promise.reject(new Error());
@@ -2879,35 +3005,21 @@ audioElement.addEventListener('canplay', function () {
 })
 
 /**
- * Duration monitoring: When the audio playback duration reaches the set end time, stop the recorder
+ * When the uploaded file is less than 30s, after audio playback ends, stop the recorder
  */
-audioElement.addEventListener("timeupdate", function () {
-    if (endTime >0  && audioElement.currentTime >= endTime) {
-        audioElement.pause()
-        if(recorder._state !== 'inactive'){
-            console.log('stop recorder')
-            recorder.stop()
-        }
+localAudio.addEventListener("ended", function () {
+    if(audioRecorder._state !== 'inactive' && audioRecorder._state !== 'stopped'){
+        audioRecorder.stopRecording()
     }
 });
 
 /**
- * When the uploaded file is less than 30s, after audio playback ends, stop the recorder
+ * Check available content types compatibility
  */
-audioElement.addEventListener("ended", function () {
-    if(recorder._state !== 'inactive'){
-        console.log("audio play onended")
-        recorder.stop()
-    }
-});
-
-// Check platform
 window.addEventListener('load', function() {
-    // Check compatibility
-    if (OpusMediaRecorder === undefined) {
+    if (OggOpusMediaRecorder === undefined) {
         console.error('No OpusMediaRecorder found');
     } else {
-        // Check available content types
         let contentTypes = [
             'audio/wave',
             'audio/wav',
@@ -2921,3 +3033,24 @@ window.addEventListener('load', function() {
         });
     }
 }, false);
+
+/**
+ * Upload local audio file
+ * 使用FileReader读取上传文件，转换为stream
+ */
+function recordToOgg (file, callback){
+    console.log('Recorder audio file to ogg')
+    fileName = file.name.replace(/\.[^\.]+$/, '')
+    audioCtx = new AudioContext();
+    let fileReader = new FileReader()
+    fileReader.file = file;
+    recorderCallback = callback
+
+    fileReader.onload = function(e){
+        console.log('file reade onload...')
+        audioCtx.decodeAudioData(e.target.result).then(createSoundSource).catch(function (error) {
+            console.error(error.toString())
+        })
+    }
+    fileReader.readAsArrayBuffer(fileReader.file);
+}

@@ -7,7 +7,7 @@ let gutil = require('gulp-util');
 let releaseList = [
     './src/event-target-shim.js',
     './src/detect-browser.js',
-    './src/OpusMediaRecorder.js',
+    './src/OggOpusMediaRecorder.js',
     './src/encoderWorker.js',
     './src/api.js'
 ]
@@ -25,7 +25,7 @@ let handleError = function (err) {
 gulp.task('build', function (done) {
     let combined = combiner.obj([
         gulp.src(releaseList)
-            .pipe(concat('opusRecorder.js'))         // 按照[]里的顺序合并文件
+            .pipe(concat('OggOpusRecorder.js'))         // 按照[]里的顺序合并文件
             .pipe(gulp.dest('./dist'))
     ])
     combined.on('error', handleError)

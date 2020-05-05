@@ -20,9 +20,10 @@ let recorderCallback = null
  * @type {{OggOpusEncoderWasmPath: string}}
  */
 const workerOptions = {
-    OggOpusEncoderWasmPath: 'https://cdn.jsdelivr.net/npm/opus-media-recorder@0.7.19/OggOpusEncoder.wasm'
+    OggOpusEncoderWasmPath: './OggOpusEncoder.wasm',
+    // OggOpusEncoderWasmPath: 'https://cdn.jsdelivr.net/npm/opus-media-recorder@0.7.19/OggOpusEncoder.wasm'
 };
-window.MediaRecorder = OpusMediaRecorder;
+window.MediaRecorder = OggOpusMediaRecorder;
 
 /**
  * create MediaRecorder instance
@@ -152,7 +153,7 @@ localAudio.addEventListener("ended", function () {
  * Check available content types compatibility
  */
 window.addEventListener('load', function() {
-    if (OpusMediaRecorder === undefined) {
+    if (OggOpusMediaRecorder === undefined) {
         console.error('No OpusMediaRecorder found');
     } else {
         let contentTypes = [

@@ -8,7 +8,7 @@ const BUFFER_SIZE = 4096;
  * Reference: https://w3c.github.io/mediacapture-record/#mediarecorder-api
  * @extends EventTarget
  */
-class OpusMediaRecorder extends EventTargetWrapper {
+class OggOpusMediaRecorder extends EventTargetWrapper {
     /**
      * A function that returns the encoder web worker
      * @name workerFactory
@@ -55,10 +55,10 @@ class OpusMediaRecorder extends EventTargetWrapper {
         this.recordingDuration = duration || 30000;   // Auto-stop recording after specific interval using setRecordingDuration
 
         // Parse MIME Type
-        if (!OpusMediaRecorder.isTypeSupported(this._mimeType)) {
+        if (!OggOpusMediaRecorder.isTypeSupported(this._mimeType)) {
             throw new TypeError('invalid arguments, a MIME Type is not supported');
         }
-        switch (OpusMediaRecorder._parseType(this._mimeType).subtype) {
+        switch (OggOpusMediaRecorder._parseType(this._mimeType).subtype) {
             case 'wave':
             case 'wav':
                 this._mimeType = 'audio/wave';
@@ -122,8 +122,8 @@ class OpusMediaRecorder extends EventTargetWrapper {
         }
         workerDir = workerDir.substr(0, workerDir.lastIndexOf('/')) + '/src/encoderWorker.js';
         // If worker function is imported via <script> tag, make it blob to get URL.
-        if (typeof OpusMediaRecorder.encoderWorker === 'function') {
-            workerDir = URL.createObjectURL(new Blob([`(${OpusMediaRecorder.encoderWorker})()`]));
+        if (typeof OggOpusMediaRecorder.encoderWorker === 'function') {
+            workerDir = URL.createObjectURL(new Blob([`(${OggOpusMediaRecorder.encoderWorker})()`]));
         }
 
         // Spawn a encoder worker
@@ -513,7 +513,7 @@ class OpusMediaRecorder extends EventTargetWrapper {
             return true;
         }
         try {
-            var {type, subtype, codec} = OpusMediaRecorder._parseType(mimeType);
+            var {type, subtype, codec} = OggOpusMediaRecorder._parseType(mimeType);
         } catch (error) {
             // 2. If not a valid string, return false.
             return false;
@@ -582,7 +582,7 @@ class OpusMediaRecorder extends EventTargetWrapper {
     'pause', // Called to handle the pause event.
     'resume', // Called to handle the resume event.
     'error' // Called to handle a MediaRecorderErrorEvent.
-].forEach(name => defineEventAttribute(OpusMediaRecorder.prototype, name));
+].forEach(name => defineEventAttribute(OggOpusMediaRecorder.prototype, name));
 
 // MS Edge specific monkey patching:
 // onaudioprocess callback cannot be triggered more than twice when postMessage
