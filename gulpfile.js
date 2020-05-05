@@ -1,8 +1,8 @@
 let gulp = require('gulp');
-let concat = require('gulp-concat');
-let combiner = require('stream-combiner2');
-let uglify = require('gulp-uglify');   //js压缩
 let gutil = require('gulp-util');
+let concat = require('gulp-concat');
+let sourcemaps = require('gulp-sourcemaps');
+let uglify = require('gulp-uglify-es').default;
 
 let releaseList = [
     './src/event-target-shim.js',
@@ -12,28 +12,25 @@ let releaseList = [
     './src/api.js'
 ]
 
-let handleError = function (err) {
-    let colors = gutil.colors;
-    console.log('\n');
-    gutil.log(colors.red('Error!'));
-    gutil.log('fileName: ' + colors.red(err.fileName));
-    gutil.log('lineNumber: ' + colors.red(err.lineNumber));
-    gutil.log('message: ' + err.message);
-    gutil.log('plugin: ' + colors.yellow(err.plugin))
-}
-
 gulp.task('build', function (done) {
-    let combined = combiner.obj([
-        gulp.src(releaseList)
-            .pipe(concat('OggOpusRecorder.js'))         // 按照[]里的顺序合并文件
-            .pipe(gulp.dest('./dist'))
-    ])
-    combined.on('error', handleError)
+    gulp.src(releaseList)
+        .pipe(concat('OggOpusRecorder.js'))         // 按照[]里的顺序合并文件
+        .pipe(sourcemaps.init())
+        .pipe(uglify({
+            warnings: true,
+            mangle: true,     // 是否修改变量名
+            compress: true,     // 是否完全压缩
+            toplevel: true,
+        }))
+        .on('error', function (err) {
+            gutil.log(gutil.colors.red('[Error]'), err.toString());
+        })
+        .pipe(sourcemaps.write()) // Inline source maps.
+        .pipe(gulp.dest('./dist'))
     done();
 })
 
 gulp.task('default', gulp.series('build', function(done) {
-    // Do something after a, b, and c are finished.
     console.log( "gulp default task" );
     done();
 }));

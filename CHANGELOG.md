@@ -1,6 +1,14 @@
 # Changelog
 All notable changes to this project will be documented in this file.
 
+## [2020-5-5]
+
+### Changed
+
+- minify ES6 functions with gulp-uglify-es.
+
+- generate source maps, use gulp-sourcemaps.
+
 ## [2020-4-30]
 ### Changed
 

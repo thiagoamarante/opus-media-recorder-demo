@@ -30,6 +30,10 @@
 
 ## Usage
 
+- 文件引入: `<script type="text/javascript" src="dist/OggOpusRecorder.js"></script>`
+
+- 接口使用示例:
+
 ```javascript
  uploadFile.addEventListener('change', async function () {
     try {
