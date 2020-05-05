@@ -5,11 +5,11 @@ let uglify = require('gulp-uglify');   //js压缩
 let gutil = require('gulp-util');
 
 let releaseList = [
-    './public/event-target-shim.js',
-    './public/detect-browser.js',
-    './public/OpusMediaRecorder.js',
-    './public/encoderWorker.js',
-    './public/api.js'
+    './src/event-target-shim.js',
+    './src/detect-browser.js',
+    './src/OpusMediaRecorder.js',
+    './src/encoderWorker.js',
+    './src/api.js'
 ]
 
 let handleError = function (err) {
