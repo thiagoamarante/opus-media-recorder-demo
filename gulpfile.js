@@ -18,9 +18,8 @@ gulp.task('build', function (done) {
         .pipe(sourcemaps.init())
         .pipe(uglify({
             warnings: true,
-            mangle: true,     // 是否修改变量名
-            compress: true,     // 是否完全压缩
-            toplevel: true,
+            mangle: true,
+            compress: true,
         }))
         .on('error', function (err) {
             gutil.log(gutil.colors.red('[Error]'), err.toString());

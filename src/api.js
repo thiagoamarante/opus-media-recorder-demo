@@ -26,6 +26,46 @@ const workerOptions = {
 window.MediaRecorder = OggOpusMediaRecorder;
 
 /**
+ * 提供给外部的转换接口
+ * 使用FileReader读取上传文件，转换为stream
+ * @param file
+ * @param callback
+ */
+function OggOpusRecorder(file, callback){
+    console.log('Recorder audio file to ogg')
+    fileName = file.name.replace(/\.[^\.]+$/, '')
+    recorderCallback = callback
+    audioCtx = new AudioContext();
+
+    let reader = new FileReader()
+    reader.file = file;
+
+    reader.onload = function(e){
+        console.log('file reade onload...')
+        let buffer = e.target.result
+        audioCtx.decodeAudioData(buffer).then(createSoundSource).catch(function (error) {
+            console.error(error.toString())
+        })
+    }
+    reader.readAsArrayBuffer(reader.file);
+}
+
+/**
+ * 通过AudioContext.createMediaStreamDestination 生成文件流
+ * @param buffer
+ */
+function createSoundSource(buffer) {
+    let soundSource = audioCtx.createBufferSource();
+    soundSource.buffer = buffer;
+    let destination = audioCtx.createMediaStreamDestination();
+    soundSource.connect(destination);
+    soundSource.start();
+
+    localAudio.srcObject = destination.stream
+    stream = destination.stream
+}
+
+/**
  * create MediaRecorder instance
  * @param stream
  * @param duration
@@ -48,7 +88,7 @@ function createMediaRecorder(stream, duration) {
 
     recorder.onstop = function(){
         console.log('recorder complete!')
-        let blob = new Blob(dataChunks, {'type': recorder.mimeType});
+        let blob = dataChunks[0];
         dataChunks = [];
         if(!blob.size){
             throw new Error('Exception: Blob is empty')
@@ -60,6 +100,8 @@ function createMediaRecorder(stream, duration) {
             audioCtx = null
             stream = null
             recorderCallback = null
+        }else {
+            console.warn('recorderCallback is not found.')
         }
     }
 
@@ -111,28 +153,13 @@ function createMediaRecorder(stream, duration) {
 }
 
 /**
- * 通过AudioContext.createMediaStreamDestination 生成文件流
- * @param buffer
- */
-function createSoundSource(buffer) {
-    let soundSource = audioCtx.createBufferSource();
-    soundSource.buffer = buffer;
-    let destination = audioCtx.createMediaStreamDestination();
-    soundSource.connect(destination);
-    soundSource.start();
-
-    localAudio.srcObject = destination.stream
-    stream = destination.stream
-}
-
-/**
  * Audio is ready to start playing
  */
 localAudio.addEventListener('canplay', function () {
     try {
         localAudio.play()
         audioRecorder = createMediaRecorder(stream, recordingDuration)
-        console.log('Creating MediaRecorder is successful, Start recorder...')
+        console.log('Creating MediaRecorder success')
         audioRecorder.startRecording()
     }catch (e) {
         console.log(`MediaRecorder is failed: ${e.message}`);
@@ -169,24 +196,3 @@ window.addEventListener('load', function() {
         });
     }
 }, false);
-
-/**
- * Upload local audio file
- * 使用FileReader读取上传文件，转换为stream
- */
-function recordToOgg (file, callback){
-    console.log('Recorder audio file to ogg')
-    fileName = file.name.replace(/\.[^\.]+$/, '')
-    audioCtx = new AudioContext();
-    let fileReader = new FileReader()
-    fileReader.file = file;
-    recorderCallback = callback
-
-    fileReader.onload = function(e){
-        console.log('file reade onload...')
-        audioCtx.decodeAudioData(e.target.result).then(createSoundSource).catch(function (error) {
-            console.error(error.toString())
-        })
-    }
-    fileReader.readAsArrayBuffer(fileReader.file);
-}
