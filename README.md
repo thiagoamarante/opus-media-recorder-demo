@@ -39,7 +39,7 @@
  uploadFile.addEventListener('change', async function () {
     try {
         let file = this.files[0];
-        recordToOgg(file, function (blob) {
+        OggOpusRecorder(file, function (blob) {
             let file = new File([blob], `${fileName}.ogg`, {type: 'audio/ogg;codecs=opus'})
             let url = URL.createObjectURL(blob);
             link.href = url;
