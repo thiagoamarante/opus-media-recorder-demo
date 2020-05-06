@@ -20,8 +20,7 @@ let recorderCallback = null
  * @type {{OggOpusEncoderWasmPath: string}}
  */
 const workerOptions = {
-    OggOpusEncoderWasmPath: './OggOpusEncoder.wasm',
-    // OggOpusEncoderWasmPath: 'https://cdn.jsdelivr.net/npm/opus-media-recorder@0.7.19/OggOpusEncoder.wasm'
+    OggOpusEncoderWasmPath: 'https://cdn.jsdelivr.net/npm/opus-media-recorder@0.7.19/OggOpusEncoder.wasm'
 };
 window.MediaRecorder = OggOpusMediaRecorder;
 

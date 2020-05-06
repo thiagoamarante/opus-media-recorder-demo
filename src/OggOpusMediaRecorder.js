@@ -120,7 +120,8 @@ class OggOpusMediaRecorder extends EventTargetWrapper {
         } else if (self.location) {
             workerDir = self.location.href;
         }
-        workerDir = workerDir.substr(0, workerDir.lastIndexOf('/')) + '/src/encoderWorker.js';
+        console.warn("self.location: ", self.location)
+        workerDir = workerDir.substr(0, workerDir.lastIndexOf('/')) + '/dist/encoderWorker.js';
         // If worker function is imported via <script> tag, make it blob to get URL.
         if (typeof OggOpusMediaRecorder.encoderWorker === 'function') {
             workerDir = URL.createObjectURL(new Blob([`(${OggOpusMediaRecorder.encoderWorker})()`]));

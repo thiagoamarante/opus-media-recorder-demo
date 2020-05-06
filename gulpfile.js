@@ -8,7 +8,6 @@ let releaseList = [
     './src/event-target-shim.js',
     './src/detect-browser.js',
     './src/OggOpusMediaRecorder.js',
-    './src/encoderWorker.js',
     './src/api.js'
 ]
 
