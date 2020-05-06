@@ -31,6 +31,7 @@
 ## Usage
 
 - 文件引入: `<script type="text/javascript" src="dist/OggOpusRecorder.js"></script>`
+    - 需要手动修改 encoderWorker.js 所在路径【workerDir】
 
 - 接口使用示例:
 
