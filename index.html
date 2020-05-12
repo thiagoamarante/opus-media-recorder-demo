@@ -23,7 +23,7 @@
     </header>
     <div>
         <input type="file" class="localShare" id="uploadFile" style="display: block;" />
-        <!--<audio id="audioUpload" autoplay muted controls></audio>-->
+        <audio id="audioUpload" autoplay muted controls></audio>
     </div>
 </section>
 
@@ -55,12 +55,12 @@
 </section>
 
 <!--development-->
-<!--<script type="text/javascript" src="src/event-target-shim.js"></script>-->
-<!--<script type="text/javascript" src="src/detect-browser.js"></script>-->
-<!--<script type="text/javascript" src="src/OggOpusMediaRecorder.js"></script>-->
-<!--<script type="text/javascript" src="src/api.js"></script>-->
+<script type="text/javascript" src="src/event-target-shim.js"></script>
+<script type="text/javascript" src="src/detect-browser.js"></script>
+<script type="text/javascript" src="src/OggOpusMediaRecorder.js"></script>
+<script type="text/javascript" src="src/api.js"></script>
 <!--Or-->
-<script type="text/javascript" src="dist/OggOpusRecorder.js"></script>
+<!--<script type="text/javascript" src="dist/OggOpusRecorder.js"></script>-->
 
 <script>
     let player = document.querySelector('#player');
@@ -73,6 +73,16 @@
     uploadFile.addEventListener('change', async function () {
         try {
             let uploadFile = this.files[0];
+            // var fileurl = URL.createObjectURL(uploadFile);
+            //经测试，发现audio也可获取视频的时长
+            // var audioElement = new Audio(fileurl);
+            // var duration;
+            // audioElement.addEventListener("loadedmetadata", function (_event) {
+            //     duration = audioElement.duration;
+            //     console.warn( "duration");
+            //     console.warn(duration/60);//单位：分
+            // });
+
             OggOpusRecorder(uploadFile, function (blob) {
                 let file = new File([blob], `${fileName}.ogg`, {type: 'audio/ogg;codecs=opus'})
                 let url = URL.createObjectURL(blob);

@@ -19,7 +19,12 @@ let recorderCallback = null
  *  Non-standard options
  * @type {{OggOpusEncoderWasmPath: string}}
  */
+let workerDir = self.location.href;
+workerDir = workerDir.substr(0, workerDir.lastIndexOf('/'))
 const workerOptions = {
+    encoderWorkerFactory: function () {
+        return new Worker(workerDir + '/dist/encoderWorker.js')
+    },
     OggOpusEncoderWasmPath: 'https://cdn.jsdelivr.net/npm/opus-media-recorder@0.7.19/OggOpusEncoder.wasm'
 };
 window.MediaRecorder = OggOpusMediaRecorder;
@@ -57,6 +62,7 @@ function createSoundSource(buffer) {
     let soundSource = audioCtx.createBufferSource();
     soundSource.buffer = buffer;
     let destination = audioCtx.createMediaStreamDestination();
+    console.warn(destination )
     soundSource.connect(destination);
     soundSource.start();
 
@@ -170,6 +176,7 @@ localAudio.addEventListener('canplay', function () {
  * When the uploaded file is less than 30s, after audio playback ends, stop the recorder
  */
 localAudio.addEventListener("ended", function () {
+    console.warn(audioRecorder)
     if(audioRecorder._state !== 'inactive' && audioRecorder._state !== 'stopped'){
         audioRecorder.stopRecording()
     }
