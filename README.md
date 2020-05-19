@@ -8,7 +8,7 @@
     > 通过 OpusMediaRecorder.channelCount 设置，默认双声道
     
 - SampleRate：
-  > 通过 `OPUS_OUTPUT_SAMPLE_RATE` 变量设置，默认 48000Hz
+  > 通过 `OPUS_OUTPUT_SAMPLE_RATE` 变量设置
 
 
 ----

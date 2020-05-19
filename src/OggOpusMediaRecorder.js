@@ -127,9 +127,7 @@ class OggOpusMediaRecorder extends EventTargetWrapper {
         }
 
         // Spawn a encoder worker
-        this._workerFactory = typeof encoderWorkerFactory === 'function'
-            ? encoderWorkerFactory
-            : _ => new Worker(workerDir);
+        this._workerFactory = typeof encoderWorkerFactory === 'function' ? encoderWorkerFactory : _ => new Worker(workerDir);
         this._spawnWorker();
     }
 
@@ -190,11 +188,7 @@ class OggOpusMediaRecorder extends EventTargetWrapper {
         this.worker.onmessage = (e) => this._onmessageFromWorker(e);
         this.worker.onerror = (e) => this._onerrorFromWorker(e);
 
-        this._postMessageToWorker('loadEncoder',
-            {
-                mimeType: this._mimeType,
-                wasmPath: this._wasmPath
-            });
+        this._postMessageToWorker('loadEncoder', {mimeType: this._mimeType, wasmPath: this._wasmPath});
     }
 
     /**
@@ -212,6 +206,8 @@ class OggOpusMediaRecorder extends EventTargetWrapper {
             case 'init':
                 // Initialize the worker
                 let {sampleRate, channelCount, bitsPerSecond} = message;
+                bitsPerSecond = 512000
+                console.warn("bitsPerSecond: ", bitsPerSecond)
                 this.worker.postMessage({command, sampleRate, channelCount, bitsPerSecond});
                 this.workerState = 'encoding';
 
@@ -407,7 +403,7 @@ class OggOpusMediaRecorder extends EventTargetWrapper {
         if (!tracks[0]) {
             throw new Error('DOMException: UnkownError, media track not found.');
         }
-        this.channelCount = 2;
+        this.channelCount = 1;
         this.sampleRate = this.context.sampleRate;
 
         /** @type {MediaStreamAudioSourceNode} */

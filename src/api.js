@@ -25,7 +25,8 @@ const workerOptions = {
     encoderWorkerFactory: function () {
         return new Worker(workerDir + '/dist/encoderWorker.js')
     },
-    OggOpusEncoderWasmPath: 'https://cdn.jsdelivr.net/npm/opus-media-recorder@0.7.19/OggOpusEncoder.wasm'
+    // OggOpusEncoderWasmPath: 'https://cdn.jsdelivr.net/npm/opus-media-recorder@0.7.19/OggOpusEncoder.wasm',
+    OggOpusEncoderWasmPath: workerDir + '/dist/OggOpusEncoder.wasm'
 };
 window.MediaRecorder = OggOpusMediaRecorder;
 
@@ -62,7 +63,6 @@ function createSoundSource(buffer) {
     let soundSource = audioCtx.createBufferSource();
     soundSource.buffer = buffer;
     let destination = audioCtx.createMediaStreamDestination();
-    console.warn(destination )
     soundSource.connect(destination);
     soundSource.start();
 
