@@ -329,11 +329,6 @@ var Module = (function () {
                     this.mInputBuffer = this.memory.mallocFloat32Buffer(this.inputSamplesPerChannel * channelCount);
                     this.mResampledBuffer = this.memory.mallocFloat32Buffer(this.outputSamplePerChannel * channelCount);
                     this.mOutputBuffer = this.memory.mallocUint8Buffer(OPUS_OUTPUT_MAX_LENGTH);
-                    console.warn("inputSampleRate: ", inputSampleRate)
-                    console.warn("this.inputSamplesPerChannel: ", this.inputSamplesPerChannel)
-                    console.warn("OPUS_OUTPUT_SAMPLE_RATE: ", OPUS_OUTPUT_SAMPLE_RATE)
-                    console.warn("this.outputSamplePerChannel: ", this.outputSamplePerChannel)
-
                     // TODO: Figure out how to delete this thing.
                     this.interleavedBuffers = (channelCount !== 1) ? new Float32Array(BUFFER_LENGTH * channelCount) : undefined;
                 }

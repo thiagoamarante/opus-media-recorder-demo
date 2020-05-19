@@ -206,8 +206,6 @@ class OggOpusMediaRecorder extends EventTargetWrapper {
             case 'init':
                 // Initialize the worker
                 let {sampleRate, channelCount, bitsPerSecond} = message;
-                bitsPerSecond = 512000
-                console.warn("bitsPerSecond: ", bitsPerSecond)
                 this.worker.postMessage({command, sampleRate, channelCount, bitsPerSecond});
                 this.workerState = 'encoding';
 
