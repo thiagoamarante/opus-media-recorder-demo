@@ -12,7 +12,7 @@
 
 <header>
     <h1>
-        Opus MediaRecorder Example 6
+        Opus MediaRecorder Example 7
     </h1>
 </header>
 
@@ -35,7 +35,7 @@
     </header>
     <div>
         <button id="gravar" onclick="gravar_OnClick()">gravar</button>
-        <button id="parar" onclick="parar_OnClick()">gravar</button>
+        <button id="parar" onclick="parar_OnClick()">parar</button>
         <audio id="player" controls></audio>
     </div>
     <div><a id="link">Download Link</a></div>
@@ -160,7 +160,7 @@
             console.log(e.data);
             let url = URL.createObjectURL(e.data);
             link.href = url;
-            link.download = file.name;
+            link.download = "Arquivo";
             player.src = url;
         });
         mediaRecord.startRecording();
