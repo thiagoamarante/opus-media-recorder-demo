@@ -3903,11 +3903,11 @@ function initWorker(workerGlobalScope) {
                 // This bug is found in Chrome 66.0.3359.181 (2018).
                 // It is fixed since 2019.
                 // So re-create Float32Array right after a web worker received it.
-                //for (let i = 0; i < channelBuffers.length; i++) {
-                //    channelBuffers[i] = new Float32Array(channelBuffers[i].buffer);
-                //}
-
-                encoder.encode(channelBuffers);
+                for (let i = 0; i < channelBuffers.length; i++) {
+                    channelBuffers[i] = new Float32Array(channelBuffers[i].buffer);
+                }
+                console.log("aqui1");
+                //encoder.encode(channelBuffers);
                 break;
 
             case 'getEncodedData':
