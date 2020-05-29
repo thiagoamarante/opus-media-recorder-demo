@@ -12,7 +12,7 @@
 
 <header>
     <h1>
-        Opus MediaRecorder Example 5
+        Opus MediaRecorder Example 6
     </h1>
 </header>
 
@@ -158,6 +158,10 @@
         mediaRecord = new MediaRecorder(mediaStream, { mimeType: 'audio/ogg' }, workerOptions);
         mediaRecord.addEventListener('dataavailable', function (e) {
             console.log(e.data);
+            let url = URL.createObjectURL(e.data);
+            link.href = url;
+            link.download = file.name;
+            player.src = url;
         });
         mediaRecord.startRecording();
     }   
