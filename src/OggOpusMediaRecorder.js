@@ -40,7 +40,7 @@ class OggOpusMediaRecorder extends EventTargetWrapper {
      *          by the encoder worker. This is NON-STANDARD.
      */
     constructor(stream, options = {}, workerOptions = {}, duration) {
-        console.log("v1");
+        console.log("v2");
         const {mimeType, audioBitsPerSecond, videoBitsPerSecond, bitsPerSecond} = options; // eslint-disable-line
         // NON-STANDARD options
         const {encoderWorkerFactory, OggOpusEncoderWasmPath, WebMOpusEncoderWasmPath} = workerOptions;
@@ -329,7 +329,12 @@ class OggOpusMediaRecorder extends EventTargetWrapper {
 
             // Pass data to the worker
             const message = {channelBuffers, length, duration};
-            //this._postMessageToWorker('pushInputData', message);
+            try {
+                this._postMessageToWorker('pushInputData', message);
+            } catch (e) {
+                console.log("error2");
+                console.log(e);
+            }
 
             // Calculate time
             elapsedTime += duration;
