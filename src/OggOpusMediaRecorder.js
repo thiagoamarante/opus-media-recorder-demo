@@ -326,12 +326,12 @@ class OggOpusMediaRecorder extends EventTargetWrapper {
 
             // Pass data to the worker
             const message = {channelBuffers, length, duration};
-            this._postMessageToWorker('pushInputData', message);
+            //this._postMessageToWorker('pushInputData', message);
 
             // Calculate time
             elapsedTime += duration;
             if (elapsedTime >= timeslice) {
-                this._postMessageToWorker('getEncodedData');
+                //this._postMessageToWorker('getEncodedData');
                 elapsedTime = 0;
             }
         };
@@ -412,10 +412,7 @@ class OggOpusMediaRecorder extends EventTargetWrapper {
 
         // Start recording
         this._state = 'recording';
-        this._enableAudioProcessCallback(timeslice);
-        
-        this.source.connect(this.processor);
-        this.processor.connect(this.context.destination);
+        this._enableAudioProcessCallback(timeslice);        
 
         // If the worker is already loaded then start
         if (this.workerState === 'readyToInit') {
