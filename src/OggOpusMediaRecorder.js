@@ -321,7 +321,9 @@ class OggOpusMediaRecorder extends EventTargetWrapper {
             const channelBuffers = new Array(numberOfChannels);
             for (let i = 0; i < numberOfChannels; i++) {
                 channelBuffers[i] = inputBuffer.getChannelData(i);
+                var outputData = e.outputBuffer.getChannelData(i);
             }
+            console.log(channelBuffers);
 
             // Pass data to the worker
             const message = {channelBuffers, length, duration};
@@ -331,7 +333,7 @@ class OggOpusMediaRecorder extends EventTargetWrapper {
             // Calculate time
             elapsedTime += duration;
             if (elapsedTime >= timeslice) {
-                //this._postMessageToWorker('getEncodedData');
+                this._postMessageToWorker('getEncodedData');
                 elapsedTime = 0;
             }
         };
