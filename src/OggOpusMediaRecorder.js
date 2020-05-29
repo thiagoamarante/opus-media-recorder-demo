@@ -251,6 +251,7 @@ class OggOpusMediaRecorder extends EventTargetWrapper {
     _onmessageFromWorker(event) {
         const {command, buffers} = event.data;
         let eventToPush;
+        console.log(command);
         switch (command) {
             case 'readyToInit':
                 const {sampleRate, channelCount} = this;
