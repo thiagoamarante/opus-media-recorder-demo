@@ -12,7 +12,7 @@
 
 <header>
     <h1>
-        Opus MediaRecorder Example 4
+        Opus MediaRecorder Example 5
     </h1>
 </header>
 
@@ -35,6 +35,7 @@
     </header>
     <div>
         <button id="gravar" onclick="gravar_OnClick()">gravar</button>
+        <button id="parar" onclick="parar_OnClick()">gravar</button>
         <audio id="player" controls></audio>
     </div>
     <div><a id="link">Download Link</a></div>
@@ -138,6 +139,12 @@
         });
     }
     
+    let mediaRecord;
+    
+    function parar_OnClick() {
+        mediaRecord.stopRecording();
+    }
+    
     function Start(mediaStream) {
         let workerDir = self.location.href;
         workerDir = workerDir.substr(0, workerDir.lastIndexOf('/'))
@@ -148,7 +155,7 @@
             // OggOpusEncoderWasmPath: 'https://cdn.jsdelivr.net/npm/opus-media-recorder@0.7.19/OggOpusEncoder.wasm',
             OggOpusEncoderWasmPath: workerDir + '/dist/OggOpusEncoder.wasm'
         };
-        var mediaRecord = new MediaRecorder(mediaStream, { mimeType: 'audio/ogg' }, workerOptions);
+        mediaRecord = new MediaRecorder(mediaStream, { mimeType: 'audio/ogg' }, workerOptions);
         mediaRecord.addEventListener('dataavailable', function (e) {
             console.log(e.data);
         });
