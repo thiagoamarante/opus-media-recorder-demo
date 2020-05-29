@@ -402,7 +402,7 @@ class OggOpusMediaRecorder extends EventTargetWrapper {
         if (!tracks[0]) {
             throw new Error('DOMException: UnkownError, media track not found.');
         }
-        this.channelCount = 1;
+        this.channelCount = 2;
         this.sampleRate = this.context.sampleRate;
 
         /** @type {MediaStreamAudioSourceNode} */
