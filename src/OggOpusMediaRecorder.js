@@ -40,7 +40,7 @@ class OggOpusMediaRecorder extends EventTargetWrapper {
      *          by the encoder worker. This is NON-STANDARD.
      */
     constructor(stream, options = {}, workerOptions = {}, duration) {
-        console.log("v2");
+        console.log("v3");
         const {mimeType, audioBitsPerSecond, videoBitsPerSecond, bitsPerSecond} = options; // eslint-disable-line
         // NON-STANDARD options
         const {encoderWorkerFactory, OggOpusEncoderWasmPath, WebMOpusEncoderWasmPath} = workerOptions;
