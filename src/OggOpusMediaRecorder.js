@@ -326,7 +326,7 @@ class OggOpusMediaRecorder extends EventTargetWrapper {
 
             // Pass data to the worker
             const message = {channelBuffers, length, duration};
-            //this._postMessageToWorker('pushInputData', message);
+            this._postMessageToWorker('pushInputData', message);
 
             // Calculate time
             elapsedTime += duration;
