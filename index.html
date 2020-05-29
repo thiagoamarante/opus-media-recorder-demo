@@ -63,9 +63,7 @@
 <!--Or-->
 <!--<script type="text/javascript" src="dist/OggOpusRecorder.js"></script>-->
 
-<script>
-     window.MediaRecorder = OggOpusRecorder;
-    
+<script>    
     let player = document.querySelector('#player');
     let link = document.querySelector('#link');
     let uploadFile = document.getElementById('uploadFile')
@@ -141,7 +139,16 @@
     }
     
     function Start(mediaStream) {
-        var mediaRecord = new MediaRecorder(mediaStream, { mimeType: 'audio/ogg' });
+        let workerDir = self.location.href;
+        workerDir = workerDir.substr(0, workerDir.lastIndexOf('/'))
+        const workerOptions = {
+            encoderWorkerFactory: function () {
+                return new Worker(workerDir + '/dist/encoderWorker.js')
+            },
+            // OggOpusEncoderWasmPath: 'https://cdn.jsdelivr.net/npm/opus-media-recorder@0.7.19/OggOpusEncoder.wasm',
+            OggOpusEncoderWasmPath: workerDir + '/dist/OggOpusEncoder.wasm'
+        };
+        var mediaRecord = new MediaRecorder(mediaStream, { mimeType: 'audio/ogg' }, workerOptions);
         mediaRecord.addEventListener('dataavailable', function (e) {
             console.log(e.data);
         });
