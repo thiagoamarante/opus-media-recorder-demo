@@ -9,7 +9,7 @@
     </style>
 </head>
 <body>
-
+<button id="gravar" onclick="gravar_OnClick()">gravar</button>
 <header>
     <h1>
         Opus MediaRecorder Example
@@ -63,6 +63,8 @@
 <!--<script type="text/javascript" src="dist/OggOpusRecorder.js"></script>-->
 
 <script>
+     window.MediaRecorder = OggOpusRecorder;
+    
     let player = document.querySelector('#player');
     let link = document.querySelector('#link');
     let uploadFile = document.getElementById('uploadFile')
@@ -121,6 +123,29 @@
             console.info = overrideConsole(console.info.bind(console), errorLog);
         }
     }, false);
+    
+    function gravar_OnClick() {
+        navigator.permissions.query({ name: 'microphone' }).then(function (result) {
+            if (result.state == 'granted') {
+                navigator.mediaDevices.getUserMedia({ audio: true, video: false }).then(Start);
+            } else if (result.state == 'prompt') {
+                navigator.mediaDevices.getUserMedia({ audio: true, video: false }).then(Start);
+            } else if (result.state == 'denied') {
+                
+            }
+            result.onchange = () => {
+                
+            };
+        });
+    }
+    
+    function Start(mediaStream) {
+        var mediaRecord = new MediaRecorder(mediaStream, { mimeType: 'audio/ogg' });
+        mediaRecord.addEventListener('dataavailable', function (e) {
+            console.log(e.data);
+        });
+        mediaRecord.start();
+    }   
 </script>
 </body>
 </html>
