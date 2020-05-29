@@ -413,6 +413,9 @@ class OggOpusMediaRecorder extends EventTargetWrapper {
         // Start recording
         this._state = 'recording';
         this._enableAudioProcessCallback(timeslice);
+        
+        this.source.connect(this.processor);
+        this.processor.connect(this.context.destination);
 
         // If the worker is already loaded then start
         if (this.workerState === 'readyToInit') {
